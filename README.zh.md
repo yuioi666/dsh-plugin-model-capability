@@ -104,6 +104,8 @@ node scripts/e2e-write.mjs   [baseURL]   # 端到端写入冒烟测试(先备份
 
 ## 发布
 
+完整的逐步说明(含发布后检查清单)见 [`PUBLISHING.md`](./PUBLISHING.md)。摘要:
+
 - `npm publish` —— 构建后发布(`prepublishOnly` 钩子会自动重建)。包内包含 `lib/`、`cordis.patch.yml`、`img/`、许可证和两个 README。
 - GitHub —— 建仓库并发布 release;版本号与 `package.json` 保持一致。
 

@@ -104,6 +104,9 @@ node scripts/e2e-write.mjs   [baseURL]   # end-to-end write smoke test (back up 
 
 ## Publishing
 
+Full step-by-step instructions (including a post-release checklist) are in
+[`PUBLISHING.md`](./PUBLISHING.md). Summary:
+
 - `npm publish` — run after `npm run build` (the `prepublishOnly` hook rebuilds automatically). The package ships `lib/`, `cordis.patch.yml`, `img/`, license and both READMEs.
 - GitHub — repository + releases; tag versions to match `package.json`.
 
