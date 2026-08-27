@@ -27,7 +27,7 @@ export function PresetBar({ store, t, routes, onToast, disabled }) {
 
   const apply = async () => {
     const routeIds = Object.keys(selected ?? {}).filter((r) => selected[r]);
-    const result = await store.applyBuiltinPreset(dialog.presetId, routeIds);
+    const result = await store.applyBuiltinPreset(dialog.id, routeIds);
     onToast?.(
       result.ok
         ? { tone: "good", text: t("presetApplied") }
