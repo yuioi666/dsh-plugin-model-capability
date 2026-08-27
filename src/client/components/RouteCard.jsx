@@ -95,15 +95,16 @@ export function RouteCard({ store, t, route, onToast, disabled, defaultOpen }) {
           ) : (
             models.map((model) =>
               model && typeof model.id === "string" ? (
-                <ModelEditor
-                  key={model.id}
-                  store={store}
-                  t={t}
-                  route={route}
-                  model={model}
-                  onToast={onToast}
-                  disabled={disabled}
-                />
+                <Fold key={model.id} title={model.id} defaultOpen={false}>
+                  <ModelEditor
+                    store={store}
+                    t={t}
+                    route={route}
+                    model={model}
+                    onToast={onToast}
+                    disabled={disabled}
+                  />
+                </Fold>
               ) : null,
             )
           )}

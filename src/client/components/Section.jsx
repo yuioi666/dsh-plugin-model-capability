@@ -3,7 +3,7 @@
 import { useSyncExternalStore, useState } from "react";
 import { localize, en as enDict, zh as zhDict } from "../dict.js";
 import { looksLikeLegacyGateway, THINKING_LEVELS } from "../constants.js";
-import { Badge, Select, Toast, WarningBox } from "./ui.jsx";
+import { Badge, Fold, Select, Toast, WarningBox } from "./ui.jsx";
 import { PresetBar } from "./PresetBar.jsx";
 import { RouteCard } from "./RouteCard.jsx";
 
@@ -74,14 +74,15 @@ export function Section({ store, owner }) {
       <Toast toast={toast} />
 
       {diagnostics.length > 0 ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 600 }}>{t("diagTitle")}</div>
-          {diagnostics.map((item, i) => (
-            <WarningBox key={i} tone={item.tone}>
-              {item.text}
-            </WarningBox>
-          ))}
-        </div>
+        <Fold title={t("diagTitle")} badge={String(diagnostics.length)} defaultOpen={false}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {diagnostics.map((item, i) => (
+              <WarningBox key={i} tone={item.tone}>
+                {item.text}
+              </WarningBox>
+            ))}
+          </div>
+        </Fold>
       ) : (
         <div style={{ fontSize: 12, opacity: 0.55 }}>{t("diagNone")}</div>
       )}
