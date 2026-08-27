@@ -56,8 +56,10 @@ async function scrollInto(texts, { exact = false } = {}) {
   for (const label of texts) {
     const el = page.getByText(label, { exact }).first();
     if ((await el.count()) > 0) {
-      await el.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => {});
-      await page.waitForTimeout(500);
+      // native scrollIntoView walks every scrollable ancestor (including the
+      // settings surface's own scroller inside shadow DOM)
+      await el.evaluate((n) => n.scrollIntoView({ block: "center", inline: "nearest" }));
+      await page.waitForTimeout(600);
       return label;
     }
   }
@@ -104,8 +106,9 @@ const enProbe = {
 await shot("03-top-en.png");
 steps.push({ shot: "03-top-en.png", scrolledTo: enScroll, ...enProbe });
 
-// --- a model editor (EN) ---
-const modelId = await scrollInto(["kimi-k2.5", "qwen3.5-flash-2026-02-23", "deepseek-v4-pro"]);
+// --- a model editor scrolled into view (EN): pick a mid-list model so the
+// view pans well past the presets block into the model cards ---
+const modelId = await scrollInto(["qwen3-coder-next", "glm-5", "qwen3.5-397b-a17b", "kimi-k2.5"]);
 const modelProbe = {
   model: modelId,
   levelHint: await page.getByText("Key = selectable level", { exact: false }).first().isVisible().catch(() => false),

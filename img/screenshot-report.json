@@ -13,7 +13,7 @@
     },
     {
       "shot": "04-model-en.png",
-      "model": "kimi-k2.5",
+      "model": "qwen3-coder-next",
       "levelHint": true
     },
     {
