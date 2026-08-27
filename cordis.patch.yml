@@ -1,0 +1,15 @@
+# dsh-plugin-model-capability bundle layer.
+#
+# Applied automatically when the package is installed into a profile
+# (package.json declares `dsh.bundle.patch`), i.e. a profile that runs
+# `dsh plugin --profile <name> add dsh-plugin-model-capability` gets this
+# wiring without any manual cordis.patch.yml edits.
+#
+# One row mounts both sides of the plugin:
+#   - the Host half (lib/index.js) registers the `model-capability` settings
+#     namespace (UI language preference + custom preset storage);
+#   - the Web client half (lib/client.js, declared via `dsh.client`) renders
+#     the "Model Capability" page in the settings shell.
+- insert:
+    - id: model-capability
+      name: dsh-plugin-model-capability

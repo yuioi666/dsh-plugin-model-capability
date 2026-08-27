@@ -1,0 +1,32 @@
+{
+  "steps": [
+    {
+      "shot": "02-settings-nav.png",
+      "navEntry": true
+    },
+    {
+      "shot": "03-top-en.png",
+      "scrolledTo": "One-click presets",
+      "presets": true,
+      "diagnostics": true,
+      "route": true
+    },
+    {
+      "shot": "04-model-en.png",
+      "model": "kimi-k2.5",
+      "levelHint": true
+    },
+    {
+      "shot": "05-compat-zh.png",
+      "compatTitle": "网关兼容性",
+      "compatScrolled": "网关兼容性",
+      "compatRow": true
+    },
+    {
+      "shot": "06-top-zh.png",
+      "presets": true,
+      "diagnostics": true
+    }
+  ],
+  "errors": []
+}
