@@ -2,7 +2,7 @@
 
 **Model Capability Manager** — manage the `llm-pi-ai` provider routes of DeepSeek Harness (DSH Web) from a dedicated **Model Capability** page in the in-app settings: per-model thinking levels, context window, output cap, input modalities, per-route defaults, gateway compatibility fields, one-click presets, and an EN/中文 switchable UI.
 
-[简体中文说明](./README.zh.md)
+[简体中文说明](./docs/README-zh.md)
 
 ---
 
@@ -107,7 +107,7 @@ node scripts/e2e-write.mjs   [baseURL]   # end-to-end write smoke test (back up 
 Full step-by-step instructions (including a post-release checklist) are in
 [`PUBLISHING.md`](./PUBLISHING.md). Summary:
 
-- `npm publish` — run after `npm run build` (the `prepublishOnly` hook rebuilds automatically). The package ships `lib/`, `cordis.patch.yml`, `img/`, license and both READMEs.
+- `npm publish` — run after `npm run build` (the `prepublishOnly` hook rebuilds automatically). The package ships `lib/`, `cordis.patch.yml`, `img/`, license, the English README and the Chinese guide in `docs/`.
 - GitHub — repository + releases; tag versions to match `package.json`.
 
 ## License

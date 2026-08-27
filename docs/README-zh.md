@@ -2,7 +2,7 @@
 
 **模型能力管理** —— 在 DeepSeek Harness(DSH Web)的应用内设置里新增「模型能力」页面,集中管理 `llm-pi-ai` 提供商路由:每个模型的思考等级、上下文窗口、输出上限、输入模态,路由级默认值,网关兼容字段,一键预设,以及可切换的中英文界面。
 
-[English README](./README.md)
+[English README](../README.md)
 
 ---
 
@@ -19,11 +19,11 @@ DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。
 
 | 设置入口 | 页面总览(EN) |
 | --- | --- |
-| ![设置入口](img/02-settings-nav.png) | ![页面总览 EN](img/03-top-en.png) |
+| ![设置入口](../img/02-settings-nav.png) | ![页面总览 EN](../img/03-top-en.png) |
 
 | 模型编辑器(EN) | 网关兼容折叠(ZH) | 页面总览(ZH) |
 | --- | --- | --- |
-| ![模型编辑器 EN](img/04-model-en.png) | ![兼容编辑器 ZH](img/05-compat-zh.png) | ![页面总览 ZH](img/06-top-zh.png) |
+| ![模型编辑器 EN](../img/04-model-en.png) | ![兼容编辑器 ZH](../img/05-compat-zh.png) | ![页面总览 ZH](../img/06-top-zh.png) |
 
 ## 功能特性
 
@@ -104,9 +104,9 @@ node scripts/e2e-write.mjs   [baseURL]   # 端到端写入冒烟测试(先备份
 
 ## 发布
 
-完整的逐步说明(含发布后检查清单)见 [`PUBLISHING.md`](./PUBLISHING.md)。摘要:
+完整的逐步说明(含发布后检查清单)见 [`PUBLISHING.md`](../PUBLISHING.md)。摘要:
 
-- `npm publish` —— 构建后发布(`prepublishOnly` 钩子会自动重建)。包内包含 `lib/`、`cordis.patch.yml`、`img/`、许可证和两个 README。
+- `npm publish` —— 构建后发布(`prepublishOnly` 钩子会自动重建)。包内包含 `lib/`、`cordis.patch.yml`、`img/`、许可证、英文 README 与 `docs/` 下的中文指南。
 - GitHub —— 建仓库并发布 release;版本号与 `package.json` 保持一致。
 
 ## 许可证

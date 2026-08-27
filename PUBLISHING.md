@@ -16,7 +16,7 @@ git status                # working tree clean
 npm run build             # rebuilds lib/client.js + lib/index.js
 npm pack --dry-run        # list the exact tarball contents:
                           #  lib/client.js, lib/index.js, cordis.patch.yml,
-                          #  img/*.png, README.md, README.zh.md, LICENSE, package.json
+                          #  img/*.png, README.md, docs/README-zh.md, LICENSE, package.json
 ```
 
 Expected pack output: 14 files, ~780 kB tarball. If something is missing, fix the
