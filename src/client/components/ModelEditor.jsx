@@ -223,7 +223,7 @@ export function ModelEditor({ store, t, route, model, onToast, disabled }) {
 
 function modelIndexFor(store, route, modelId) {
   const index = store.modelIndexById(route, modelId);
-  return index < 0 ? 0 : index;
+  return String(index < 0 ? 0 : index);
 }
 
 const border = "1px solid color-mix(in srgb, currentColor 22%, transparent)";

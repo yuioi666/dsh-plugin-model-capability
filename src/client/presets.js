@@ -6,6 +6,8 @@
 // indexes); materialization of the target routes into the user layer happens
 // right before the write (see CapabilityStore.applyBuiltinPreset).
 
+import { deepClone } from "./constants.js";
+
 /** The full seven-level reasoningEfforts map (off sends nothing). */
 export function fullThinkingLevels() {
   return {
@@ -35,15 +37,17 @@ function modelBase(route, entry, modelId) {
 }
 
 function modelOps(route, entry, build) {
-  const models = Array.isArray(entry?.models) ? entry.models : [];
-  const ops = [];
+  // Returns a single op that writes the entire route with the models patched.
+  // Writing individual model paths fails because DSH applyPathOp does not
+  // handle arrays — the `models` field gets replaced by an object.
+  const models = Array.isArray(entry?.models) ? deepClone(entry.models) : [];
   for (const model of models) {
     if (!model || typeof model.id !== "string") continue;
-    const index = modelIndex(entry, model.id);
-    if (index < 0) continue;
-    build(ops, [...routeBase(route), "models", index], model);
+    build(model);
   }
-  return ops;
+  const patched = deepClone(entry);
+  patched.models = models;
+  return [{ op: "set", path: routeBase(route), value: patched }];
 }
 
 /** Ordered list of built-in presets. */
@@ -108,8 +112,8 @@ export const BUILTIN_PRESETS = [
       const base = routeBase(route);
       const levels = fullThinkingLevels();
       return [
-        ...modelOps(route, entry, (ops, modelPath) => {
-          ops.push({ op: "set", path: [...modelPath, "reasoningEfforts"], value: levels });
+        ...modelOps(route, entry, (patched) => {
+          patched.reasoningEfforts = levels;
         }),
         { op: "set", path: [...base, "reasoning"], value: "high" },
         {
@@ -128,8 +132,8 @@ export const BUILTIN_PRESETS = [
       const base = routeBase(route);
       return [
         { op: "set", path: [...base, "defaultInput"], value: ["text"] },
-        ...modelOps(route, entry, (ops, modelPath) => {
-          ops.push({ op: "set", path: [...modelPath, "input"], value: ["text"] });
+        ...modelOps(route, entry, (patched) => {
+          patched.input = ["text"];
         }),
       ];
     },
@@ -142,8 +146,8 @@ export const BUILTIN_PRESETS = [
       const base = routeBase(route);
       return [
         { op: "set", path: [...base, "defaultInput"], value: ["text", "image"] },
-        ...modelOps(route, entry, (ops, modelPath) => {
-          ops.push({ op: "set", path: [...modelPath, "input"], value: ["text", "image"] });
+        ...modelOps(route, entry, (patched) => {
+          patched.input = ["text", "image"];
         }),
       ];
     },

@@ -161,18 +161,25 @@ export class CapabilityStore {
 
   async writeModelField(route, modelId, fields) {
     // fields: { [fieldName]: value } — set each; value === UNSET marks unset
+    // IMPORTANT: The DSH settings `applyPathOp` does NOT handle arrays, so
+    // ANY path going through `models` will replace the array with an object.
+    // We work around this by reading the whole route, patching the model in
+    // its models array, and writing the entire route object back.
     const materialized = await this.ensureRouteMaterialized(route);
     if (!materialized.ok) return materialized;
+    const routeEntry = this.route(route);
+    if (!routeEntry) return { ok: false, message: "route-not-found" };
     const index = this.modelIndexById(route, modelId);
     if (index < 0) return { ok: false, message: "model-not-found" };
-    const ops = [];
+    const models = Array.isArray(routeEntry.models) ? deepClone(routeEntry.models) : [];
+    if (index >= models.length) return { ok: false, message: "model-not-found" };
     for (const [field, value] of Object.entries(fields)) {
-      const path = ["providers", route, "models", index, field];
-      if (value === UNSET) ops.push({ op: "unset", path });
-      else ops.push({ op: "set", path, value });
+      if (value === UNSET) delete models[index][field];
+      else models[index][field] = value;
     }
-    if (ops.length === 0) return { ok: true };
-    return this.writeOps(ops);
+    const patched = deepClone(routeEntry);
+    patched.models = models;
+    return this.writePath(["providers", route], patched);
   }
 
   /** Copy one model's visible settings to every model of the same route. */
@@ -181,22 +188,19 @@ export class CapabilityStore {
     if (!source) return { ok: false, message: "model-not-found" };
     const materialized = await this.ensureRouteMaterialized(route);
     if (!materialized.ok) return materialized;
-    const ops = [];
-    for (const model of this.modelsOf(route)) {
-      if (!model || model.id === modelId) continue;
-      const index = this.modelIndexById(route, model.id);
-      if (index < 0) continue;
+    const routeEntry = this.route(route);
+    if (!routeEntry) return { ok: false, message: "route-not-found" };
+    const models = Array.isArray(routeEntry.models) ? deepClone(routeEntry.models) : [];
+    for (const model of models) {
+      if (model.id === modelId) continue;
       for (const field of fieldNames) {
         if (!(field in source)) continue;
-        ops.push({
-          op: "set",
-          path: ["providers", route, "models", index, field],
-          value: deepClone(source[field]),
-        });
+        model[field] = deepClone(source[field]);
       }
     }
-    if (ops.length === 0) return { ok: true };
-    return this.writeOps(ops);
+    const patched = deepClone(routeEntry);
+    patched.models = models;
+    return this.writePath(["providers", route], patched);
   }
 
   // ——— presets ———
