@@ -57,13 +57,94 @@ All writes go through the DSH settings service with revision fencing (`expectedR
 
 Requires a DSH installation with the web app (any profile that serves the browser UI), DSH ≥ 0.1.1-rc.2.
 
+### Install the latest version
+
 ```bash
-dsh plugin --profile web add dsh-plugin-model-capability
+dsh plugin --profile web add dsh-plugin-model-capability@1.0.0
 ```
 
 Then **restart `dsh --profile web`** (the running Web UI is not hot-reloaded on plugin install). The **Model Capability** entry appears under **Settings**.
 
 For other profiles, replace `web` with your profile name.
+
+> **Pin the exact version** (`@1.0.0`) — see [Getting the latest version](#getting-the-latest-version) below. Installing without a version can resolve to an older release that is still cached locally or on the registry CDN.
+
+### Getting the latest version (cache / publish-delay caveats)
+
+A new release is only picked up when **all three caches** agree — the npm registry
+CDN metadata, your local pnpm store, and the profile's lockfile. Any one of them
+stale means `dsh plugin add dsh-plugin-model-capability` (no version) keeps
+installing the old build. To guarantee you get the newest version:
+
+1. **Check what the registry currently has:**
+   ```bash
+   npm view dsh-plugin-model-capability version
+   ```
+   If this does not show the version you expect, the registry CDN still serves
+   stale metadata — wait ~1–2 minutes and retry (npm publishes are usually
+   visible in seconds, but the `packument` metadata is cached per-TTL).
+
+2. **Uninstall any previously installed copy first** (see [Uninstall](#uninstall)
+   below). The profile lockfile (`node_modules/.pnpm/lock.yaml` /
+   `pnpm-lock.yaml`) otherwise keeps the old version pinned.
+
+3. **Install with the exact version** — this bypasses metadata resolution:
+   ```bash
+   dsh plugin --profile web add dsh-plugin-model-capability@1.0.0
+   ```
+
+4. **Clear stale local caches if the profile still reports an old version:**
+   ```bash
+   pnpm store prune                 # remove unreferenced store packages
+   ```
+   or, for the profile itself:
+   ```bash
+   cd "$HOME/.dsh/profiles/web"
+   pnpm store prune
+   ```
+
+5. **Verify what actually got installed:**
+   ```bash
+   grep -A2 '"dependencies"' "$HOME/.dsh/profiles/web/package.json"
+   ```
+   (Windows PowerShell: `Select-String -Path "$HOME\.dsh\profiles\web\package.json" -Pattern "model-capability"`)
+   The version shown next to `dsh-plugin-model-capability` must be `"1.0.0"`.
+
+6. **Restart the web UI** — the plugin is loaded at startup, never hot-reloaded:
+   ```bash
+   dsh --profile web
+   ```
+
+Registry note: an already-published version can **never be overwritten**. If a bad
+build got released under `0.1.2`, the fix is a new version (`0.1.3`, `1.0.0`, …),
+not a re-publish — which is exactly why "install the latest" means **pin the
+version**, not `npm update`.
+
+### Uninstall
+
+```bash
+dsh plugin --profile web remove dsh-plugin-model-capability
+```
+
+If the command reports `no such dependency found` (a broken install whose
+dependency entry is missing from `package.json`), remove it directly inside the
+profile:
+
+```bash
+cd "$HOME/.dsh/profiles/web"
+pnpm remove dsh-plugin-model-capability
+```
+
+After either step, **restart `dsh --profile web`**.
+
+To verify the plugin is fully gone:
+
+- `"$HOME/.dsh/profiles/web/package.json"` — no `dsh-plugin-model-capability`
+  entry under `dependencies`
+- `"$HOME/.dsh/profiles/web/node_modules/dsh-plugin-model-capability"` — directory
+  no longer exists
+- `"$HOME/.dsh/profiles/web/pnpm-lock.yaml"` — no `dsh-plugin-model-capability`
+  reference (0 hits)
 
 > The host half also loads headlessly (it registers the settings schema); the settings UI itself needs the web app.
 

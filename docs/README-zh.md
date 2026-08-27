@@ -57,13 +57,79 @@ DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。
 
 需要装有 web 应用的 DSH(任何能打开浏览器界面的 profile),DSH ≥ 0.1.1-rc.2。
 
+### 安装最新版
+
 ```bash
-dsh plugin --profile web add dsh-plugin-model-capability
+dsh plugin --profile web add dsh-plugin-model-capability@1.0.0
 ```
 
 然后**重启 `dsh --profile web`**(安装插件后运行中的 Web UI 不会热更新)。重启后「设置」里就会出现**模型能力**入口。
 
 其他 profile 同理,把 `web` 换成你的 profile 名。
+
+> **务必带上精确版本号**(`@1.0.0`)——原因见下节「拿到最新版」。不带版本号安装时,可能解析到本地或 registry CDN 缓存中的旧版本。
+
+### 拿到最新版(缓存 / 发布时间差限制)
+
+新版本要生效,需要**三处缓存都一致**:npm registry CDN 的元数据、本地 pnpm store、profile 的 lockfile。任何一处是旧的,`dsh plugin add dsh-plugin-model-capability`(不带版本号)都会继续装旧构建。要确保装到最新版:
+
+1. **先看 registry 当前是什么版本:**
+   ```bash
+   npm view dsh-plugin-model-capability version
+   ```
+   如果显示的不是你预期的新版本,说明 registry CDN 还在返回旧元数据——等 1–2 分钟再试(npm 发布通常秒级可见,但 `packument` 元数据按 TTL 缓存)。
+
+2. **先卸载已装的旧版**(见下节「卸载」)。否则 profile 的 lockfile(`pnpm-lock.yaml`)会把旧版本钉住。
+
+3. **用精确版本号安装**,绕开元数据解析:
+   ```bash
+   dsh plugin --profile web add dsh-plugin-model-capability@1.0.0
+   ```
+
+4. **如果 profile 仍显示旧版本,清理本地缓存:**
+   ```bash
+   pnpm store prune      # 清理无引用的 store 包
+   ```
+   或在 profile 目录里:
+   ```bash
+   cd "$HOME/.dsh/profiles/web"
+   pnpm store prune
+   ```
+
+5. **确认实际装进来的版本:**
+   ```bash
+   Select-String -Path "$HOME\.dsh\profiles\web\package.json" -Pattern "model-capability"
+   ```
+   (macOS/Linux: `grep -A2 '"dependencies"' "$HOME/.dsh/profiles/web/package.json"`)
+   `dsh-plugin-model-capability` 后面的版本必须是 `"1.0.0"`。
+
+6. **重启 Web UI** —— 插件只在启动时加载,不会热更新:
+   ```bash
+   dsh --profile web
+   ```
+
+为什么会有这种限制:已发布的版本号**永远不能覆盖重发**。如果某个坏构建已经发成了 `0.1.2`,修复只能靠新版本号(`0.1.3`、`1.0.0`……),所以「装最新」= **钉版本号**(`@1.0.0`),而不是 `npm update`。
+
+### 卸载
+
+```bash
+dsh plugin --profile web remove dsh-plugin-model-capability
+```
+
+如果提示 `no such dependency found`(属于损坏安装:依赖条目没写进 `package.json`),直接在 profile 目录里删:
+
+```bash
+cd "$HOME/.dsh/profiles/web"
+pnpm remove dsh-plugin-model-capability
+```
+
+两种方式之后都要**重启 `dsh --profile web`**。
+
+确认插件删干净了:
+
+- `"$HOME/.dsh/profiles/web/package.json"` —— `dependencies` 里没有 `dsh-plugin-model-capability`
+- `"$HOME/.dsh/profiles/web/node_modules/dsh-plugin-model-capability"` —— 目录已不存在
+- `"$HOME/.dsh/profiles/web/pnpm-lock.yaml"` —— 搜 `dsh-plugin-model-capability` 无结果(0 行)
 
 > 宿主端在无头模式下也会加载(注册设置 schema);设置界面本身需要 web 应用。
 
