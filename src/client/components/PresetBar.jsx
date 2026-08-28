@@ -36,10 +36,10 @@ export function PresetBar({ store, t, routes, onToast, disabled }) {
     setDialog(null);
   };
 
-  const save = async () => {
+  const save = async (name) => {
     setSaving(true);
-    const name = presetName.trim();
-    const result = await store.saveCustomPreset(name || t("savePresetName"));
+    const finalName = (name || presetName || "").trim() || t("savePresetName");
+    const result = await store.saveCustomPreset(finalName);
     setSaving(false);
     onToast?.(
       result.ok
@@ -116,7 +116,7 @@ export function PresetBar({ store, t, routes, onToast, disabled }) {
               value={presetName}
               placeholder={t("savePresetName")}
               disabled={disabled || saving}
-              onCommit={() => save()}
+              onCommit={(draft) => save(draft)}
             />
             <Btn kind="primary" disabled={disabled || saving} onClick={save}>
               {t("savePresetBtn")}

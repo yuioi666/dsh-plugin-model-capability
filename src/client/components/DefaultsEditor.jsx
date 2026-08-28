@@ -97,7 +97,7 @@ export function DefaultsEditor({ store, t, route, entry, onToast, disabled }) {
             ))}
           </div>
         </Field>
-        <Field label={t("thinkingBudgets")}>
+        <Field label={t("thinkingBudgets")} hint={t("thinkingBudgetsHint")}>
           <Grid columns={4} gap={8}>
             {["minimal", "low", "medium", "high"].map((key) => (
               <Field key={key} label={key}>

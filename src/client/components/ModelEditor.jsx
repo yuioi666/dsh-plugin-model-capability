@@ -85,7 +85,6 @@ export function ModelEditor({ store, t, route, model, onToast, disabled }) {
 
   const applyToAll = async () => {
     const result = await store.applyModelToAll(route, modelId, [
-      "name",
       ...CAPACITY_FIELDS,
       "input",
       "reasoningEfforts",

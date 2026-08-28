@@ -8,13 +8,13 @@
       "shot": "03-top-en.png",
       "scrolledTo": "One-click presets",
       "presets": true,
-      "diagnostics": true,
+      "diagnostics": false,
       "route": true
     },
     {
       "shot": "04-model-en.png",
-      "model": "qwen3-coder-next",
-      "levelHint": true
+      "model": null,
+      "levelHint": false
     },
     {
       "shot": "05-compat-zh.png",
@@ -25,7 +25,7 @@
     {
       "shot": "06-top-zh.png",
       "presets": true,
-      "diagnostics": true
+      "diagnostics": false
     }
   ],
   "errors": []

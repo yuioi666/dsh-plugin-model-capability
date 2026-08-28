@@ -21,6 +21,23 @@ export function fullThinkingLevels() {
   };
 }
 
+/**
+ * Official thinking-level maps per provider catalog (pi-ai data/*.json),
+ * used by the dialect presets — a preset must declare exactly the levels
+ * the vendor supports, not the full seven.
+ *
+ * NOTE: the Host validates that any EXPLICITLY present non-"off" level has
+ * a wire value (`reasoningEfforts.<level>` with `null` is rejected), so an
+ * unsupported level must be OMITTED (its key absent), never `null`.
+ *
+ * deepseek (deepseek.json / qwen-token-plan.json): only high/max.
+ * openai (openai.json, gpt-5 family): off/minimal/low/medium/high.
+ */
+export const OFFICIAL_LEVELS = {
+  deepseek: { high: "high", max: "max" },
+  openai: { off: null, minimal: "minimal", low: "low", medium: "medium", high: "high" },
+};
+
 /** Model index by id inside a route's resolved models array; -1 when absent. */
 function modelIndex(routeEntry, modelId) {
   const models = routeEntry?.models;
@@ -70,11 +87,15 @@ export const BUILTIN_PRESETS = [
     descKey: "builtinOpenaiNativeDesc",
     buildOps(route, entry) {
       const base = routeBase(route);
+      const levels = OFFICIAL_LEVELS.openai;
       return [
         { op: "set", path: [...base, "compat", "supportsDeveloperRole"], value: true },
         { op: "set", path: [...base, "compat", "supportsReasoningEffort"], value: true },
         { op: "set", path: [...base, "compat", "thinkingFormat"], value: "openai" },
         { op: "set", path: [...base, "compat", "maxTokensField"], value: "max_completion_tokens" },
+        ...modelOps(route, entry, (patched) => {
+          patched.reasoningEfforts = levels;
+        }),
       ];
     },
   },
@@ -84,10 +105,14 @@ export const BUILTIN_PRESETS = [
     descKey: "builtinDeepseekDialectDesc",
     buildOps(route, entry) {
       const base = routeBase(route);
+      const levels = OFFICIAL_LEVELS.deepseek;
       return [
         { op: "set", path: [...base, "compat", "thinkingFormat"], value: "deepseek" },
         { op: "set", path: [...base, "compat", "supportsDeveloperRole"], value: true },
         { op: "set", path: [...base, "compat", "supportsReasoningEffort"], value: true },
+        ...modelOps(route, entry, (patched) => {
+          patched.reasoningEfforts = levels;
+        }),
       ];
     },
   },
@@ -97,10 +122,14 @@ export const BUILTIN_PRESETS = [
     descKey: "builtinQwenDialectDesc",
     buildOps(route, entry) {
       const base = routeBase(route);
+      const levels = OFFICIAL_LEVELS.deepseek;
       return [
         { op: "set", path: [...base, "compat", "thinkingFormat"], value: "qwen" },
         { op: "set", path: [...base, "compat", "supportsDeveloperRole"], value: false },
         { op: "set", path: [...base, "compat", "supportsReasoningEffort"], value: true },
+        ...modelOps(route, entry, (patched) => {
+          patched.reasoningEfforts = levels;
+        }),
       ];
     },
   },
