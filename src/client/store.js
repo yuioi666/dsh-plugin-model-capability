@@ -17,7 +17,7 @@
 //     whole edit or rejects it naming the offending field (settings-rejected)
 //     / the stale revision (settings-conflict).
 
-import { deepClone } from "./constants.js";
+import { deepClone, stripHeadersFromProviders } from "./constants.js";
 import { BUILTIN_PRESETS } from "./presets.js";
 
 export const NS = "llm-pi-ai";
@@ -182,6 +182,35 @@ export class CapabilityStore {
     return this.writePath(["providers", route], patched);
   }
 
+  /** Write a single compat field on one model, preserving the whole route array.
+   *  Unlike writeRouteField, this does NOT go through applyPathOp on the
+   *  models array — it clones the entire route, patches the target model's
+   *  compat, and writes the whole route back. */
+  async writeModelCompatField(route, modelId, field, value, { unset = false } = {}) {
+    const materialized = await this.ensureRouteMaterialized(route);
+    if (!materialized.ok) return materialized;
+    const routeEntry = this.route(route);
+    if (!routeEntry) return { ok: false, message: "route-not-found" };
+    const index = this.modelIndexById(route, modelId);
+    if (index < 0) return { ok: false, message: "model-not-found" };
+    const models = Array.isArray(routeEntry.models) ? deepClone(routeEntry.models) : [];
+    if (index >= models.length) return { ok: false, message: "model-not-found" };
+    const compat = models[index].compat ? deepClone(models[index].compat) : {};
+    if (unset) {
+      delete compat[field];
+    } else {
+      compat[field] = value;
+    }
+    if (Object.keys(compat).length === 0) {
+      delete models[index].compat;
+    } else {
+      models[index].compat = compat;
+    }
+    const patched = deepClone(routeEntry);
+    patched.models = models;
+    return this.writePath(["providers", route], patched);
+  }
+
   /** Copy one model's visible settings to every model of the same route. */
   async applyModelToAll(route, modelId, fieldNames) {
     const source = this.modelsOf(route).find((m) => m && m.id === modelId);
@@ -233,12 +262,15 @@ export class CapabilityStore {
     return Array.isArray(self.customPresets) ? self.customPresets : [];
   }
 
-  /** Save the current user providers as a custom preset. */
+  /** Save the current user providers as a custom preset.
+   *  NOTE: all `headers` dicts are stripped from the snapshot to prevent
+   *  credential leaks (Authorization, api-key, etc.). */
   async saveCustomPreset(name) {
-    const providers = this.userProviders();
-    if (Object.keys(providers).length === 0) {
+    const rawProviders = this.userProviders();
+    if (Object.keys(rawProviders).length === 0) {
       return { ok: false, message: "no-user-routes" };
     }
+    const providers = stripHeadersFromProviders(rawProviders);
     const id = `cp_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
     const item = {
       id,

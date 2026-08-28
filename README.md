@@ -48,6 +48,8 @@ This plugin gives you a GUI for all of it, plus **one-click presets** that bake 
   | Text only | `defaultInput=['text']` and per-model `input=['text']` |
   | Image ready | `defaultInput=['text','image']` and per-model `input=['text','image']` |
   - Apply any preset to a **selected subset of routes**. Save your current configuration as a custom preset; apply and delete them anytime. Custom presets are stored under `model-capability.customPresets` in `settings.yaml`.
+  - **Applying a custom preset replaces the whole `llm-pi-ai` user section** via `settings.replace`, not a merge. Any route that was added to the user section *after* the preset was saved will be **deleted**. This is not an additive recipe — treat the preset as a full snapshot.
+  - **Header credential protection** — credential-shaped header names (`authorization`, `api-key`, etc.) are **blocked** in the headers editor, and the `headers` dict is **stripped** from every provider route when saving a custom preset (credentials travel as `apiKeyEnv` reference names, never as literal header values). Existing presets that were saved before this safeguard are detected at startup and reported in the advisory checks.
 - **Advisory checks** — the page shows diagnostics about your current setup: legacy-gateway lookalike URLs with `supportsDeveloperRole` on (hint: use Safe gateway), reasoning levels that map to no wire value, models without an explicit `contextWindow`, and routes without models.
 - **Language switch** — the page follows the DSH UI language, and a select in the page header lets you pin **English / 中文 / follow DSH**. The choice persists into `settings.yaml` (`model-capability.language`), not just to the browser session.
 

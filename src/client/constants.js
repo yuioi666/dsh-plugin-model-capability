@@ -143,6 +143,33 @@ export function parseCapacity(text) {
   return value;
 }
 
+/** Header names that carry credentials and must never be stored in presets. */
+export const CREDENTIAL_HEADER_NAMES = [
+  "authorization",
+  "proxy-authorization",
+  "api-key",
+  "x-api-key",
+  "x-api-key",
+];
+
+/** Check whether a header name looks like a credential. Case-insensitive. */
+export function isCredentialHeader(name) {
+  const lower = String(name).toLowerCase().trim();
+  return CREDENTIAL_HEADER_NAMES.includes(lower);
+}
+
+/** Deep-clone providers and strip all `headers` dicts from every route. */
+export function stripHeadersFromProviders(providers) {
+  const out = deepClone(providers);
+  for (const route of Object.keys(out)) {
+    const entry = out[route];
+    if (entry && typeof entry === "object" && entry.headers) {
+      delete entry.headers;
+    }
+  }
+  return out;
+}
+
 /** Deep clone of JSON-safe settings data (resolved values are frozen). */
 export function deepClone(value) {
   return JSON.parse(JSON.stringify(value));

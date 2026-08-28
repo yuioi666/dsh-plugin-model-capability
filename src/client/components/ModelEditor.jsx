@@ -210,10 +210,10 @@ export function ModelEditor({ store, t, route, model, onToast, disabled }) {
           store={store}
           t={t}
           route={route}
-          suffixPath={["models", modelIndexFor(store, route, modelId)]}
           compat={model.compat}
           onToast={onToast}
           disabled={disabled}
+          modelId={modelId}
         />
       </Fold>
     </div>

@@ -48,6 +48,8 @@ DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。
   | 仅文本 | `defaultInput=['text']` + 每个模型 `input=['text']` |
   | 文本 + 图像 | `defaultInput=['text','image']` + 每个模型 `input=['text','image']` |
   - 应用预设时可**勾选要应用的路由子集**。也可把当前配置保存为自定义预设,随时应用/删除;自定义预设存放在 `settings.yaml` 的 `model-capability.customPresets`。
+  - **应用自定义预设会替换整个 `llm-pi-ai` 用户配置段**(通过 `settings.replace`,不是合并)。预设保存之后新增的路由会被**删除**。这不是增量配方——请把预设视为完整快照。
+  - **请求头凭据保护** —— 凭据类请求头名称(`authorization`、`api-key` 等)在请求头编辑器中会被**拦截**;保存自定义预设时,每条路由的 `headers` 字典会被**剥离**(凭据通过 `apiKeyEnv` 环境变量引用,不以字面请求头值保存)。此前保存的旧预设如果包含请求头凭据,会在启动时被检测并在建议检查中报告。
 - **建议检查** —— 页面给出当前配置的诊断:疑似旧式网关却开着 `supportsDeveloperRole`(提示改用安全网关预设)、某思考档没有对应 wire 值、模型未显式设置 `contextWindow`、路由下没有模型。
 - **语言切换** —— 默认跟随 DSH 界面语言;页面顶部的下拉可以固定为 **中文 / English / 跟随 DSH**,选择会持久化到 `settings.yaml`(字段 `model-capability.language`),不是只存在浏览器会话里。
 

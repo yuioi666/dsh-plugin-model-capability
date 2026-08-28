@@ -174,9 +174,15 @@ export const en = {
   presetCorrupt: "This preset contains invalid data and could not be applied.",
   presetNotFound: "Preset not found.",
 
+  // Credential-header warnings
+  credentialHeaderWarning:
+    "Credential-like header names detected: {names}. These are NOT redacted by the Settings service and will be saved into custom presets — consider using apiKeyEnv instead.",
+
   // Diagnostics
   diagTitle: "Advisory checks",
   diagNone: "No advisories for the current configuration.",
+  diagPresetCreds:
+    'Preset "{preset}": route "{route}" contains credential headers ({names}) in its payload. The preset was saved before the strip-headers safeguard. Delete and re-save the preset, then rotate any exposed keys.',
   diagDeveloperRole:
     "{route}: baseURL looks like a legacy gateway but compat.supportsDeveloperRole is on — safe-gateway preset or manual off avoids 400 errors.",
   diagEmptyEffort:
@@ -358,8 +364,13 @@ export const zh = {
   presetCorrupt: "该预设包含无效数据,无法应用。",
   presetNotFound: "未找到该预设。",
 
+  credentialHeaderWarning:
+    "检测到类似凭据的请求头名称: {names}。设置服务不会对其进行脱敏处理,且会保存到自定义预设中——建议改用 apiKeyEnv。",
+
   diagTitle: "建议检查",
   diagNone: "当前配置没有需要提示的地方。",
+  diagPresetCreds:
+    '预设 "{preset}":路由 "{route}" 的 payload 中包含凭据类请求头({names})。该预设保存时尚未启用请求头剥离保护。请删除并重新保存该预设,然后轮换可能暴露的密钥。',
   diagDeveloperRole:
     "{route}:baseURL 看起来像旧式网关,但 compat.supportsDeveloperRole 处于开启——建议安全网关预设或手动关闭,避免 400 报错。",
   diagEmptyEffort:

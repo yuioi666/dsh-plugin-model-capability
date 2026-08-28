@@ -1,8 +1,8 @@
 // Route-level advanced fields: numeric limits, extra headers, raw section.
 
 import { useState } from "react";
-import { PROVIDER_NUMBER_FIELDS } from "../constants.js";
-import { Btn, Field, Grid, NumberInput, TextInput } from "./ui.jsx";
+import { isCredentialHeader, PROVIDER_NUMBER_FIELDS } from "../constants.js";
+import { Btn, Field, Grid, NumberInput, TextInput, WarningBox } from "./ui.jsx";
 
 export function AdvancedEditor({ store, t, route, entry, onToast, disabled }) {
   const [rawOpen, setRawOpen] = useState(false);
@@ -33,12 +33,24 @@ export function AdvancedEditor({ store, t, route, entry, onToast, disabled }) {
   const [draftHeaders, setDraftHeaders] = useState(() =>
     headerRows.map(([key, value]) => ({ key, value: String(value) })),
   );
+
+  /** Which current header rows look like credentials. */
+  const credentialKeys = draftHeaders
+    .map((r) => r.key.trim())
+    .filter((k) => k !== "" && isCredentialHeader(k));
+  const hasCredentialHeaders = credentialKeys.length > 0;
+
+  /** Rebuild the headers dict, filtering out any credential-shaped names. */
   const syncHeaders = (rows) => {
     setDraftHeaders(rows);
     const next = {};
     for (const row of rows) {
       const key = row.key.trim();
-      if (key !== "") next[key] = row.value;
+      if (key === "") continue;
+      // Block credential-shaped header names — they are NOT redacted by the
+      // Settings service and would leak into custom presets.
+      if (isCredentialHeader(key)) continue;
+      next[key] = row.value;
     }
     if (Object.keys(next).length === 0) unset(["headers"]);
     else write(["headers"], next);
@@ -60,6 +72,11 @@ export function AdvancedEditor({ store, t, route, entry, onToast, disabled }) {
 
       <Field label={t("headers")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {hasCredentialHeaders ? (
+            <WarningBox tone="bad">
+              {t("credentialHeaderWarning").replace("{names}", credentialKeys.join(", "))}
+            </WarningBox>
+          ) : null}
           {draftHeaders.map((row, index) => (
             <div key={index} style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <TextInput

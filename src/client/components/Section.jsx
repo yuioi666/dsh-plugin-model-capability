@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore, useState } from "react";
 import { localize, en as enDict, zh as zhDict } from "../dict.js";
-import { looksLikeLegacyGateway, THINKING_LEVELS } from "../constants.js";
+import { isCredentialHeader, looksLikeLegacyGateway, THINKING_LEVELS } from "../constants.js";
 import { Badge, Fold, Select, Toast, WarningBox } from "./ui.jsx";
 import { PresetBar } from "./PresetBar.jsx";
 import { RouteCard } from "./RouteCard.jsx";
@@ -149,6 +149,31 @@ function computeDiagnostics(t, store) {
     }
     if (models.length === 0) {
       out.push({ tone: "info", text: t("diagNoModels").replace("{route}", route) });
+    }
+  }
+  // Check custom presets for credentials that may have been saved before
+  // the strip-headers safeguard was added.
+  for (const preset of store.customPresets()) {
+    let parsed;
+    try {
+      parsed = JSON.parse(preset.payload);
+    } catch {
+      continue;
+    }
+    const p = parsed && typeof parsed === "object" && parsed.providers ? parsed.providers : parsed;
+    if (!p || typeof p !== "object") continue;
+    for (const [route, entry] of Object.entries(p)) {
+      if (!entry || typeof entry !== "object" || !entry.headers) continue;
+      const creds = Object.keys(entry.headers).filter((k) => isCredentialHeader(k));
+      if (creds.length > 0) {
+        out.push({
+          tone: "bad",
+          text: t("diagPresetCreds")
+            .replace("{preset}", preset.name || preset.id)
+            .replace("{route}", route)
+            .replace("{names}", creds.join(", ")),
+        });
+      }
     }
   }
   return out;
