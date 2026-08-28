@@ -62,14 +62,14 @@ DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。
 ### 安装最新版
 
 ```bash
-dsh plugin --profile web add dsh-plugin-model-capability@1.1.0
+dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
 ```
 
 然后**重启 `dsh --profile web`**(安装插件后运行中的 Web UI 不会热更新)。重启后「设置」里就会出现**模型能力**入口。
 
 其他 profile 同理,把 `web` 换成你的 profile 名。
 
-> **务必带上精确版本号**(`@1.1.0`)——原因见下节「拿到最新版」。不带版本号安装时,可能解析到本地或 registry CDN 缓存中的旧版本。
+> **务必带上精确版本号**(`@1.1.1`)——原因见下节「拿到最新版」。不带版本号安装时,可能解析到本地或 registry CDN 缓存中的旧版本。
 
 ### 拿到最新版(缓存 / 发布时间差限制)
 
@@ -85,7 +85,7 @@ dsh plugin --profile web add dsh-plugin-model-capability@1.1.0
 
 3. **用精确版本号安装**,绕开元数据解析:
    ```bash
-   dsh plugin --profile web add dsh-plugin-model-capability@1.1.0
+   dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
    ```
 
 4. **如果 profile 仍显示旧版本,清理本地缓存:**
@@ -103,14 +103,14 @@ dsh plugin --profile web add dsh-plugin-model-capability@1.1.0
    Select-String -Path "$HOME\.dsh\profiles\web\package.json" -Pattern "model-capability"
    ```
    (macOS/Linux: `grep -A2 '"dependencies"' "$HOME/.dsh/profiles/web/package.json"`)
-   `dsh-plugin-model-capability` 后面的版本必须是 `"1.1.0"`。
+   `dsh-plugin-model-capability` 后面的版本必须是 `"1.1.1"`。
 
 6. **重启 Web UI** —— 插件只在启动时加载,不会热更新:
    ```bash
    dsh --profile web
    ```
 
-为什么会有这种限制:已发布的版本号**永远不能覆盖重发**。如果某个坏构建已经发成了 `0.1.2`,修复只能靠新版本号(`0.1.3`、`1.1.0`……),所以「装最新」= **钉版本号**(`@1.1.0`),而不是 `npm update`。
+为什么会有这种限制:已发布的版本号**永远不能覆盖重发**。如果某个坏构建已经发成了 `0.1.2`,修复只能靠新版本号(`0.1.3`、`1.1.1`……),所以「装最新」= **钉版本号**(`@1.1.1`),而不是 `npm update`。
 
 ### 卸载
 
