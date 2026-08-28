@@ -34,8 +34,9 @@ export function fullThinkingLevels() {
  * openai (openai.json, gpt-5 family): off/minimal/low/medium/high.
  */
 export const OFFICIAL_LEVELS = {
-  deepseek: { high: "high", max: "max" },
+  deepseek: { off: null, low: "low", high: "high", max: "max" },
   openai: { off: null, minimal: "minimal", low: "low", medium: "medium", high: "high" },
+  qwen: { off: null, low: "low", medium: "medium", xhigh: "xhigh" },
 };
 
 /** Model index by id inside a route's resolved models array; -1 when absent. */
@@ -122,7 +123,7 @@ export const BUILTIN_PRESETS = [
     descKey: "builtinQwenDialectDesc",
     buildOps(route, entry) {
       const base = routeBase(route);
-      const levels = OFFICIAL_LEVELS.deepseek;
+      const levels = OFFICIAL_LEVELS.qwen;
       return [
         { op: "set", path: [...base, "compat", "thinkingFormat"], value: "qwen" },
         { op: "set", path: [...base, "compat", "supportsDeveloperRole"], value: false },
