@@ -1,6 +1,12 @@
 # Publishing guide
 
-This project ships as **one npm package** and is mirrored on **GitHub**. Everything you need to release v1.1.1 is here.
+This project ships as **one npm package** and is mirrored on **GitHub**. Everything you need to release a new version is here.
+
+You have two options:
+- **Option A: GitHub Actions (recommended)** — push a tag, CI does everything
+- **Option B: Manual** — run commands locally
+
+---
 
 ## Prerequisites
 
@@ -8,7 +14,34 @@ This project ships as **one npm package** and is mirrored on **GitHub**. Everyth
 - `npm` account with a login token (`npm login` once).
 - GitHub account (`yuioi666`).
 
-## 1. Pre-flight checks (local)
+---
+
+## Option A: Automated release via GitHub Actions (recommended)
+
+Push a version tag matching `v*` and CI takes care of the rest:
+
+```bash
+# Bump version in package.json first, then commit and tag:
+git add -A
+git commit -m "v<version>"
+git tag v<version>
+git push origin main --tags
+```
+
+The [release workflow](.github/workflows/release.yml) will:
+1. Build the package
+2. Publish to npm with provenance
+3. Create a GitHub Release with auto-generated release notes
+
+> **One-time setup required:** Add an npm automation token as `NPM_TOKEN` in the
+> [repository secrets](https://github.com/yuioi666/dsh-plugin-model-capability/settings/secrets/actions).
+> Generate the token at https://www.npmjs.com/settings/~/tokens (type: "Automation").
+
+---
+
+## Option B: Manual release
+
+### 1. Pre-flight checks (local)
 
 ```bash
 cd dsh-plugin-model-capability
@@ -22,7 +55,7 @@ npm pack --dry-run        # list the exact tarball contents:
 Expected pack output: 15 files, ~780 kB tarball (includes `img/`). If something
 is missing, fix the `files` array in `package.json` first.
 
-## 2. Publish to npm
+### 2. Publish to npm
 
 ```bash
 cd dsh-plugin-model-capability
@@ -33,7 +66,7 @@ npm view dsh-plugin-model-capability version   # confirm the new version resolve
 
 Notes:
 
-- The package is `dsh-plugin-model-capability@1.1.1` (see `package.json`).
+- The package version is whatever you set in `package.json` — bump it first.
 - The tarball **includes `img/`** so the README screenshots render on the npm page.
 - If the version was already published (accident), bump `version` and publish a
   patch; **never overwrite a published version** — the registry refuses it (E409)
@@ -42,29 +75,29 @@ Notes:
 - OTP: if your account uses two-factor auth, `npm publish` asks for a one-time
   password from your authenticator app — you must run it in your own terminal.
 
-## 3. Update GitHub
+### 3. Update GitHub
 
 ```bash
 cd dsh-plugin-model-capability
 git add -A
-git commit -m "v1.1.1"
+git commit -m "v<version>"
 git push origin main
-git tag v1.1.1
-git push origin v1.1.1            # tag matches package.json version
+git tag v<version>
+git push origin v<version>        # tag matches package.json version
 ```
 
-Then open the repo → Releases → create a release from tag `v1.1.1`, paste the
+Then open the repo → Releases → create a release from the tag, paste the
 feature summary from `git log --oneline`.
 
 > Push credentials come from your machine's Git Credential Manager (the npm token
 > used by automation has no repo scope). If a push asks for a browser login,
 > complete it once — it is stored and reused.
 
-## 4. Install into a real DSH profile (always pin the version!)
+### 4. Install into a real DSH profile (always pin the version!)
 
 ```bash
 dsh plugin --profile web remove dsh-plugin-model-capability     # remove any old copy first
-dsh plugin --profile web add dsh-plugin-model-capability@1.1.1  # pin the exact version
+dsh plugin --profile web add dsh-plugin-model-capability@<version>  # pin the exact version
 ```
 
 Then **restart `dsh --profile web`** — the running Web UI is not hot-reloaded on
@@ -73,16 +106,16 @@ plugin install. The **Model Capability** entry appears under Settings.
 **Why pin the version** — three caches (registry CDN packument metadata, the
 local pnpm store, the profile lockfile) can each serve stale data, so a bare
 `dsh plugin add dsh-plugin-model-capability` may keep installing an older build.
-Pinning `@1.1.1` bypasses metadata resolution. Full troubleshooting (including
+Pinning `@<version>` bypasses metadata resolution. Full troubleshooting (including
 `pnpm store prune` and how to verify the installed version) is in the README:
 [Getting the latest version](./README.md#getting-the-latest-version-cache--publish-delay-caveats)
 / [拿到最新版](./docs/README-zh.md#拿到最新版缓存--发布时间差限制).
 
-## 5. Post-release checklist
+### 5. Post-release checklist
 
-- [ ] `npm view dsh-plugin-model-capability` shows version `1.1.1` and the README with screenshots
-- [ ] GitHub repo is public, `main` pushed, tag `v1.1.1` + release notes created
+- [ ] `npm view dsh-plugin-model-capability` shows the expected version and the README with screenshots
+- [ ] GitHub repo is public, `main` pushed, tag + release notes created
 - [ ] Old plugin copy removed: no `dsh-plugin-model-capability` reference in the profile's `package.json` / `pnpm-lock.yaml`, `node_modules` directory gone
-- [ ] `dsh plugin --profile web add dsh-plugin-model-capability@1.1.1` succeeds
+- [ ] `dsh plugin --profile web add dsh-plugin-model-capability@<version>` succeeds
 - [ ] After restarting dsh web, Settings → Model Capability loads without console errors
 - [ ] One write (e.g. change a model's thinking level) persists to `settings.yaml`

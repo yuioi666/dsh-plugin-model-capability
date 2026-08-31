@@ -1,8 +1,28 @@
 # dsh-plugin-model-capability
 
+[![npm version](https://img.shields.io/npm/v/dsh-plugin-model-capability.svg)](https://www.npmjs.com/package/dsh-plugin-model-capability)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-plugin-model-capability.svg)](https://www.npmjs.com/package/dsh-plugin-model-capability)
+[![License](https://img.shields.io/npm/l/dsh-plugin-model-capability.svg)](https://github.com/yuioi666/dsh-plugin-model-capability/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/yuioi666/dsh-plugin-model-capability?style=social)](https://github.com/yuioi666/dsh-plugin-model-capability)
+
 **模型能力管理** —— 在 DeepSeek Harness(DSH Web)的应用内设置里新增「模型能力」页面,集中管理 `llm-pi-ai` 提供商路由:每个模型的思考等级、上下文窗口、输出上限、输入模态,路由级默认值,网关兼容字段,一键预设,以及可切换的中英文界面。
 
-[English README](../README.md)
+[English README](../README.md) · [报告 Bug](https://github.com/yuioi666/dsh-plugin-model-capability/issues) · [请求功能](https://github.com/yuioi666/dsh-plugin-model-capability/issues/new?template=feature_request.md)
+
+---
+
+## 目录
+
+- [为什么要做这个插件](#为什么要做这个插件)
+- [截图](#截图)
+- [功能特性](#功能特性)
+- [安装](#安装)
+- [卸载](#卸载)
+- [工作原理](#工作原理)
+- [开发](#开发)
+- [发布](#发布)
+- [相关插件](#相关插件)
+- [许可证](#许可证)
 
 ---
 
@@ -62,14 +82,14 @@ DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。
 ### 安装最新版
 
 ```bash
-dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
+dsh plugin --profile web add dsh-plugin-model-capability   # 最新稳定版,或钉版本 @<version>
 ```
 
 然后**重启 `dsh --profile web`**(安装插件后运行中的 Web UI 不会热更新)。重启后「设置」里就会出现**模型能力**入口。
 
 其他 profile 同理,把 `web` 换成你的 profile 名。
 
-> **务必带上精确版本号**(`@1.1.1`)——原因见下节「拿到最新版」。不带版本号安装时,可能解析到本地或 registry CDN 缓存中的旧版本。
+> **需要特定版本时请钉版本号**(`@<version>`)——原因见下节「拿到最新版」。不带版本号安装时,可能解析到本地或 registry CDN 缓存中的旧版本。
 
 ### 拿到最新版(缓存 / 发布时间差限制)
 
@@ -85,7 +105,8 @@ dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
 
 3. **用精确版本号安装**,绕开元数据解析:
    ```bash
-   dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
+   dsh plugin --profile web add dsh-plugin-model-capability@<version>
+   # 例如 dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
    ```
 
 4. **如果 profile 仍显示旧版本,清理本地缓存:**
@@ -103,7 +124,7 @@ dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
    Select-String -Path "$HOME\.dsh\profiles\web\package.json" -Pattern "model-capability"
    ```
    (macOS/Linux: `grep -A2 '"dependencies"' "$HOME/.dsh/profiles/web/package.json"`)
-   `dsh-plugin-model-capability` 后面的版本必须是 `"1.1.1"`。
+   `dsh-plugin-model-capability` 后面的版本必须是你期望安装的版本。
 
 6. **重启 Web UI** —— 插件只在启动时加载,不会热更新:
    ```bash
@@ -176,6 +197,15 @@ node scripts/e2e-write.mjs   [baseURL]   # 端到端写入冒烟测试(先备份
 
 - `npm publish` —— 构建后发布(`prepublishOnly` 钩子会自动重建)。包内包含 `lib/`、`cordis.patch.yml`、`img/`、许可证、英文 README 与 `docs/` 下的中文指南。
 - GitHub —— 建仓库并发布 release;版本号与 `package.json` 保持一致。
+
+## 相关插件
+
+探索 DSH 插件生态中的其他插件:
+
+- [**dsh-plugin-desktop-launcher**](https://www.npmjs.com/package/dsh-plugin-desktop-launcher) — DSH 网页版桌面快捷方式:一键安装、智能复用(运行中则直接打开浏览器)、完全卸载、跨平台(Windows/macOS/Linux)。
+- [**awesome-dsh-plugins**](https://github.com/yuioi666/awesome-dsh-plugins) — DSH 插件与资源精选列表(即将推出)。
+
+> 知道其他 DSH 插件? [推荐给我们](https://github.com/yuioi666/dsh-plugin-model-capability/issues/new)。
 
 ## 许可证
 

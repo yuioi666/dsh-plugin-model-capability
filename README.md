@@ -1,8 +1,28 @@
 # dsh-plugin-model-capability
 
+[![npm version](https://img.shields.io/npm/v/dsh-plugin-model-capability.svg)](https://www.npmjs.com/package/dsh-plugin-model-capability)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-plugin-model-capability.svg)](https://www.npmjs.com/package/dsh-plugin-model-capability)
+[![License](https://img.shields.io/npm/l/dsh-plugin-model-capability.svg)](https://github.com/yuioi666/dsh-plugin-model-capability/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/yuioi666/dsh-plugin-model-capability?style=social)](https://github.com/yuioi666/dsh-plugin-model-capability)
+
 **Model Capability Manager** — manage the `llm-pi-ai` provider routes of DeepSeek Harness (DSH Web) from a dedicated **Model Capability** page in the in-app settings: per-model thinking levels, context window, output cap, input modalities, per-route defaults, gateway compatibility fields, one-click presets, and an EN/中文 switchable UI.
 
-[简体中文说明](./docs/README-zh.md)
+[简体中文说明](./docs/README-zh.md) · [Report Bug](https://github.com/yuioi666/dsh-plugin-model-capability/issues) · [Request Feature](https://github.com/yuioi666/dsh-plugin-model-capability/issues/new?template=feature_request.md)
+
+---
+
+## Table of Contents
+
+- [Why this plugin exists](#why-this-plugin-exists)
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Installation](#installation)
+- [Uninstall](#uninstall)
+- [How it works](#how-it-works)
+- [Development](#development)
+- [Publishing](#publishing)
+- [Related Plugins](#related-plugins)
+- [License](#license)
 
 ---
 
@@ -62,14 +82,14 @@ Requires a DSH installation with the web app (any profile that serves the browse
 ### Install the latest version
 
 ```bash
-dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
+dsh plugin --profile web add dsh-plugin-model-capability   # latest stable, or pin @<version>
 ```
 
 Then **restart `dsh --profile web`** (the running Web UI is not hot-reloaded on plugin install). The **Model Capability** entry appears under **Settings**.
 
 For other profiles, replace `web` with your profile name.
 
-> **Pin the exact version** (`@1.1.1`) — see [Getting the latest version](#getting-the-latest-version) below. Installing without a version can resolve to an older release that is still cached locally or on the registry CDN.
+> **Pin the exact version** when you need a specific release — see [Getting the latest version](#getting-the-latest-version) below. Installing without a version may resolve to an older release cached locally or on the registry CDN.
 
 ### Getting the latest version (cache / publish-delay caveats)
 
@@ -92,7 +112,8 @@ installing the old build. To guarantee you get the newest version:
 
 3. **Install with the exact version** — this bypasses metadata resolution:
    ```bash
-   dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
+   dsh plugin --profile web add dsh-plugin-model-capability@<version>
+   # e.g. dsh plugin --profile web add dsh-plugin-model-capability@1.1.1
    ```
 
 4. **Clear stale local caches if the profile still reports an old version:**
@@ -110,7 +131,7 @@ installing the old build. To guarantee you get the newest version:
    grep -A2 '"dependencies"' "$HOME/.dsh/profiles/web/package.json"
    ```
    (Windows PowerShell: `Select-String -Path "$HOME\.dsh\profiles\web\package.json" -Pattern "model-capability"`)
-   The version shown next to `dsh-plugin-model-capability` must be `"1.1.1"`.
+   The version shown next to `dsh-plugin-model-capability` must match the version you intended to install.
 
 6. **Restart the web UI** — the plugin is loaded at startup, never hot-reloaded:
    ```bash
@@ -192,6 +213,15 @@ Full step-by-step instructions (including a post-release checklist) are in
 
 - `npm publish` — run after `npm run build` (the `prepublishOnly` hook rebuilds automatically). The package ships `lib/`, `cordis.patch.yml`, `img/`, license, the English README and the Chinese guide in `docs/`.
 - GitHub — repository + releases; tag versions to match `package.json`.
+
+## Related Plugins
+
+Check out other DSH plugins in the ecosystem:
+
+- [**dsh-plugin-desktop-launcher**](https://www.npmjs.com/package/dsh-plugin-desktop-launcher) — Desktop shortcut for DSH web: one-command install, smart re-entry (reuses running instance), complete uninstall, cross-platform (Windows/macOS/Linux).
+- [**awesome-dsh-plugins**](https://github.com/yuioi666/awesome-dsh-plugins) — Curated list of DSH plugins and resources (coming soon).
+
+> Know another DSH plugin? [Suggest it](https://github.com/yuioi666/dsh-plugin-model-capability/issues/new) for the list.
 
 ## License
 

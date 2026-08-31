@@ -1,0 +1,51 @@
+# Automated release workflow for dsh-plugin-model-capability.
+#
+# Triggered by pushing a tag matching v* (e.g. v1.2.0).
+# Publishes to npm and creates a GitHub Release with auto-generated notes.
+#
+# Setup required (one-time):
+#   1. Generate an npm automation token at https://www.npmjs.com/settings/~/tokens
+#      (type: "Automation" — no 2FA prompt needed for CI).
+#   2. Add it as a repository secret named NPM_TOKEN in GitHub repo Settings → Secrets.
+#
+#   If you prefer "publish manually from your machine", delete this file.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write           # needed for creating GitHub Release
+      id-token: write           # needed for npm provenance (optional)
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
