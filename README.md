@@ -4,6 +4,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/dsh-plugin-model-capability.svg)](https://www.npmjs.com/package/dsh-plugin-model-capability)
 [![License](https://img.shields.io/npm/l/dsh-plugin-model-capability.svg)](https://github.com/yuioi666/dsh-plugin-model-capability/blob/main/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/yuioi666/dsh-plugin-model-capability?style=social)](https://github.com/yuioi666/dsh-plugin-model-capability)
+[![dsh](https://img.shields.io/badge/DSH-plugin-blue.svg)](https://github.com/yuioi666/dsh-plugin-model-capability)
 
 **Model Capability Manager** — manage the `llm-pi-ai` provider routes of DeepSeek Harness (DSH Web) from a dedicated **Model Capability** page in the in-app settings: per-model thinking levels, context window, output cap, input modalities, per-route defaults, gateway compatibility fields, one-click presets, and an EN/中文 switchable UI.
 
@@ -17,11 +18,13 @@
 - [Screenshots](#screenshots)
 - [Features](#features)
 - [Installation](#installation)
+- [Quick Start](#quick-start)
 - [Uninstall](#uninstall)
+- [FAQ / Troubleshooting](#faq--troubleshooting)
 - [How it works](#how-it-works)
 - [Development](#development)
 - [Publishing](#publishing)
-- [Related Plugins](#related-plugins)
+- [Contributing](#contributing)
 - [License](#license)
 
 ---
@@ -171,6 +174,38 @@ To verify the plugin is fully gone:
 
 > The host half also loads headlessly (it registers the settings schema); the settings UI itself needs the web app.
 
+## Quick Start
+
+After installing the plugin and restarting DSH, the **Model Capability** page is available under **Settings** in the sidebar. Here is how to get started in three steps:
+
+### 1. Open the page
+
+Navigate to **Settings → Model Capability**. You will see a list of all configured provider routes (e.g. `openai`, `anthropic`, `dashscope`, etc.), each with its models listed underneath.
+
+### 2. Apply a preset (recommended first step)
+
+The fastest way to get a working configuration is to use a **one-click preset**:
+
+1. Click the **Presets** button in the page header.
+2. Select a preset that matches your gateway type (e.g. **Safe gateway** for DashScope/Moonshot/Zhipu, **OpenAI native** for official OpenAI, **DeepSeek dialect** for DeepSeek API).
+3. Choose the routes you want to apply it to (or leave all selected).
+4. Click **Apply**.
+
+The preset fills in the recommended `compat` fields, thinking levels, and defaults automatically.
+
+### 3. Fine-tune individual models
+
+Click any model row to expand its editor. From there you can:
+
+- Set the **context window** and **max tokens** (supports `K`/`M` suffixes, e.g. `128K`, `1M`).
+- Toggle **thinking** on/off and configure each of the 7 reasoning levels.
+- Change **input modalities** (`text` / `image`).
+- Open the **compat** fold to adjust gateway-specific fields per model.
+
+All changes are saved immediately through the DSH settings service with revision fencing — no manual YAML editing required.
+
+> **Tip:** If the page shows "Advisory checks" at the top, review them — they flag common misconfigurations like legacy gateways with `supportsDeveloperRole` enabled.
+
 ## How it works
 
 One npm package with two halves, installed as a **profile bundle** by `dsh plugin add`:
@@ -206,6 +241,52 @@ node scripts/verify-dom.mjs  [baseURL]   # shadow-DOM-aware rendering checks
 node scripts/e2e-write.mjs   [baseURL]   # end-to-end write smoke test (back up settings.yaml first!)
 ```
 
+## FAQ / Troubleshooting
+
+### Why are my changes not saved?
+
+The DSH settings service only accepts writes from **loopback origins** (i.e. `http://127.0.0.1:3080` or `http://localhost:3080`). If you are accessing the web UI from a different IP address or through a reverse proxy, every control on the page is disabled automatically and a hint is shown. Connect via localhost to make changes.
+
+### What does the "Safe gateway" preset do?
+
+It sets `compat.supportsDeveloperRole=false` and `supportsReasoningEffort=true`. This is the safest choice for Chinese cloud gateways — DashScope (compatible-mode), Moonshot/Kimi, Zhipu/BigModel, MiniMax, Volcengine Ark, SiliconFlow, Baidu Qianfan, and others that do not accept the `developer` role message that OpenAI/Anthropic dialects send.
+
+### Why do I see a credential warning?
+
+The plugin detects credential-shaped header names (e.g. `authorization`, `api-key`) in the `headers` field of a provider route. This is a **safety advisory**, not a block — but credentials should be stored as `apiKeyEnv` environment variable references instead of literal header values, especially when saving custom presets (the preset system strips `headers` automatically).
+
+### Can I add a new provider route?
+
+The plugin edits existing routes in the `llm-pi-ai` providers section. To add a brand-new provider, you still need to edit `settings.yaml` manually or use the DSH CLI. Once added, this plugin will pick it up on the next page load.
+
+### How do I reset a single model to defaults?
+
+Click the model row to expand its editor and clear the fields you want to reset. The route-level defaults (set in the route editor) are used as fallbacks when a per-model value is empty.
+
+### Why is the "Language" setting not persisting?
+
+The language choice (`model-capability.language`) is stored in `settings.yaml` and survives restarts. If it keeps resetting, check that the settings file is writable and that no other process is overwriting it.
+
+### Why does `thinkingBudgets` only have minimal/low/medium/high when there are 6 thinking levels?
+
+This is not a bug — it is a deliberate schema design. DSH's thinking capability has two separate layers:
+
+**1. Thinking Levels (6 levels)** — defined by `pi-ai` core:
+`minimal | low | medium | high | xhigh | max`
+All 6 levels can be configured with wire values in each model's `reasoningEfforts`.
+
+**2. Thinking Budgets (4 levels)** — defined by `dsh-llm-pi-ai` schema:
+`minimal | low | medium | high`
+There is no `xhigh` or `max` budget field.
+
+The `thinkingBudgets` controls custom token budgets for token-based providers (e.g. Anthropic/Bedrock). At runtime, when `xhigh` or `max` levels are used, the system falls back to default budgets:
+
+```js
+const budget = options.thinkingBudgets?.[level] ?? defaultBudgets[options.reasoning];
+```
+
+So if you set `thinkingBudgets.minimal/low/medium/high`, those levels use your custom values, while `xhigh` and `max` use the provider's default token allocation strategy — no custom budget is needed for those levels.
+
 ## Publishing
 
 Full step-by-step instructions (including a post-release checklist) are in
@@ -214,14 +295,15 @@ Full step-by-step instructions (including a post-release checklist) are in
 - `npm publish` — run after `npm run build` (the `prepublishOnly` hook rebuilds automatically). The package ships `lib/`, `cordis.patch.yml`, `img/`, license, the English README and the Chinese guide in `docs/`.
 - GitHub — repository + releases; tag versions to match `package.json`.
 
-## Related Plugins
+## Contributing
 
-Check out other DSH plugins in the ecosystem:
+Contributions are welcome! Here is how you can help:
 
-- [**dsh-plugin-desktop-launcher**](https://www.npmjs.com/package/dsh-plugin-desktop-launcher) — Desktop shortcut for DSH web: one-command install, smart re-entry (reuses running instance), complete uninstall, cross-platform (Windows/macOS/Linux).
-- [**awesome-dsh-plugins**](https://github.com/yuioi666/awesome-dsh-plugins) — Curated list of DSH plugins and resources (coming soon).
+- **Report bugs** — open an [issue](https://github.com/yuioi666/dsh-plugin-model-capability/issues) with a clear description and reproduction steps.
+- **Suggest features** — use the [feature request template](https://github.com/yuioi666/dsh-plugin-model-capability/issues/new?template=feature_request.md).
+- **Submit pull requests** — fork the repository, make your changes, and open a PR. Please follow the existing code style and include tests where applicable.
 
-> Know another DSH plugin? [Suggest it](https://github.com/yuioi666/dsh-plugin-model-capability/issues/new) for the list.
+The plugin is built with esbuild; run `npm run build` after making changes to the `src/` files. See the [Development](#development) section for local testing instructions.
 
 ## License
 

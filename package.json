@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-model-capability",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Model Capability Manager for DSH Web: thinking levels (off/minimal/low/medium/high/xhigh/max), context window, output caps, input modalities, gateway compatibility (developer role / thinking dialect), route defaults, one-click presets, EN/中文 UI. | DSH 网页端模型能力管理:思考等级、上下文窗口、输出上限、输入模态、网关兼容(developer role / 思考方言)、路由默认值、一键预设、中英文界面。",
   "license": "MIT",
   "author": "dsh-plugin-model-capability contributors",
@@ -65,6 +65,7 @@
   "keywords": [
     "deepseek-harness",
     "dsh",
+    "dsh-market",
     "plugin",
     "dsh-plugin",
     "dsh-web",
@@ -72,20 +73,29 @@
     "reasoning-efforts",
     "thinking-levels",
     "context-window",
+    "max-tokens",
     "modalities",
     "gateway",
+    "gateway-compatibility",
     "qwen",
     "settings",
     "settings-ui",
     "deepseek",
     "llm",
+    "llm-pi-ai",
     "openai-compatible",
+    "anthropic",
     "dashscope",
     "siliconflow",
     "moonshot",
     "zhipu",
     "minimax",
     "volcengine",
-    "baidu-qianfan"
+    "baidu-qianfan",
+    "one-click-preset",
+    "compat",
+    "developer-role",
+    "thinking",
+    "reasoning"
   ]
 }

@@ -4,6 +4,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/dsh-plugin-model-capability.svg)](https://www.npmjs.com/package/dsh-plugin-model-capability)
 [![License](https://img.shields.io/npm/l/dsh-plugin-model-capability.svg)](https://github.com/yuioi666/dsh-plugin-model-capability/blob/main/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/yuioi666/dsh-plugin-model-capability?style=social)](https://github.com/yuioi666/dsh-plugin-model-capability)
+[![dsh](https://img.shields.io/badge/DSH-plugin-blue.svg)](https://github.com/yuioi666/dsh-plugin-model-capability)
 
 **模型能力管理** —— 在 DeepSeek Harness(DSH Web)的应用内设置里新增「模型能力」页面,集中管理 `llm-pi-ai` 提供商路由:每个模型的思考等级、上下文窗口、输出上限、输入模态,路由级默认值,网关兼容字段,一键预设,以及可切换的中英文界面。
 
@@ -17,11 +18,13 @@
 - [截图](#截图)
 - [功能特性](#功能特性)
 - [安装](#安装)
+- [快速上手](#快速上手)
 - [卸载](#卸载)
+- [常见问题 / 故障排除](#常见问题--故障排除)
 - [工作原理](#工作原理)
 - [开发](#开发)
 - [发布](#发布)
-- [相关插件](#相关插件)
+- [贡献](#贡献)
 - [许可证](#许可证)
 
 ---
@@ -156,6 +159,38 @@ pnpm remove dsh-plugin-model-capability
 
 > 宿主端在无头模式下也会加载(注册设置 schema);设置界面本身需要 web 应用。
 
+## 快速上手
+
+安装插件并重启 DSH 后,在侧边栏的**设置**中即可找到**模型能力**页面。以下是快速入门的三个步骤:
+
+### 1. 打开页面
+
+进入**设置 → 模型能力**,可以看到所有已配置的提供商路由(如 `openai`、`anthropic`、`dashscope` 等),每个路由下方列出其模型。
+
+### 2. 应用预设(推荐第一步)
+
+最快获得可用配置的方法是使用**一键预设**:
+
+1. 点击页面顶部的**预设**按钮。
+2. 选择与你的网关类型匹配的预设(例如 DashScope/Moonshot/智谱 选**安全网关**,官方 OpenAI 选 **OpenAI 原生**,DeepSeek API 选 **DeepSeek 方言**)。
+3. 选择要应用的路由(或保持全选)。
+4. 点击**应用**。
+
+预设会自动填充推荐的 `compat` 字段、思考等级和默认值。
+
+### 3. 微调单个模型
+
+点击任意模型行展开编辑器,可以:
+
+- 设置**上下文窗口**和**最大输出**(支持 `K`/`M` 后缀,如 `128K`、`1M`)。
+- 开关**思考**功能并配置 7 级思考等级。
+- 更改**输入模态**(`text` / `image`)。
+- 打开 **compat** 折叠区调整网关特定字段。
+
+所有更改通过 DSH settings 服务即时保存,带修订门闩保护——无需手动编辑 YAML。
+
+> **提示:** 如果页面顶部显示「建议检查」,请仔细查看——它们会标记常见的配置错误,比如旧式网关却开着 `supportsDeveloperRole`。
+
 ## 工作原理
 
 一个 npm 包、两个半区,由 `dsh plugin add` 作为 **profile bundle** 安装:
@@ -191,6 +226,53 @@ node scripts/verify-dom.mjs  [baseURL]   # 穿透 shadow DOM 的渲染检查
 node scripts/e2e-write.mjs   [baseURL]   # 端到端写入冒烟测试(先备份 settings.yaml!)
 ```
 
+## 常见问题 / 故障排除
+
+### 为什么修改没有保存?
+
+DSH settings 服务只接受**回环地址**(即 `http://127.0.0.1:3080` 或 `http://localhost:3080`)的写入。如果通过其他 IP 或反向代理访问,页面上的所有控件会自动禁用并提示原因。请通过 localhost 连接来修改。
+
+### "安全网关"预设有什么用?
+
+它将 `compat.supportsDeveloperRole` 设为 `false`、`supportsReasoningEffort` 设为 `true`。这是国内云网关的最安全选择——DashScope(兼容模式)、Moonshot/Kimi、智谱 BigModel、MiniMax、火山方舟 Ark、硅基流动 SiliconFlow、百度千帆等,不接受 OpenAI/Anthropic 方言发送的 `developer` 角色消息。
+
+### 为什么看到凭据警告?
+
+插件检测到提供商路由的 `headers` 字段中包含凭据类请求头名称(如 `authorization`、`api-key`)。这是**安全建议**,不是阻止——但凭据应通过 `apiKeyEnv` 环境变量引用,而非字面请求头值,特别是在保存自定义预设时(预设系统会自动剥离 `headers`)。
+
+### 如何添加新的提供商路由?
+
+本插件编辑 `llm-pi-ai` 中已有的路由。要添加全新提供商,仍需手动编辑 `settings.yaml` 或使用 DSH CLI。添加后,下次加载页面时插件会自动识别。
+
+### 如何将单个模型重置为默认值?
+
+点击模型行展开编辑器,清空要重置的字段。当某字段为空时,会使用路由级默认值(在路由编辑器中设置)作为回退。
+
+### 语言设置为什么没有持久化?
+
+语言选择(`model-capability.language`)存储在 `settings.yaml` 中,重启后仍然保留。如果反复重置,请检查设置文件是否可写,以及是否有其他进程在覆盖它。
+
+### 为什么 `thinkingBudgets` 只有 minimal/low/medium/high 四个等级,而思考等级有 6 个?
+
+这不是 bug,而是 DSH schema 的刻意设计。DSH 的思考能力分为两个独立层级:
+
+**1. 思考等级 (ThinkingLevel) — 6 级**
+由 `pi-ai` 核心定义,全部 6 级都可在每个模型的 `reasoningEfforts` 中配置 wire 值:
+`minimal | low | medium | high | xhigh | max`
+
+**2. 思考预算 (thinkingBudgets) — 4 级**
+由 `dsh-llm-pi-ai` schema 定义,只有 4 级:
+`minimal | low | medium | high`
+没有 `xhigh` 和 `max` 的预算字段。
+
+`thinkingBudgets` 控制自定义 token 预算,仅对 token-based 提供商(如 Anthropic/Bedrock)起作用。运行时,当使用 `xhigh` 或 `max` 等级时,系统会走默认预算逻辑:
+
+```js
+const budget = options.thinkingBudgets?.[level] ?? defaultBudgets[options.reasoning];
+```
+
+也就是说,你设了 `thinkingBudgets.minimal/low/medium/high` 后,这些等级走你的自定义预算;而 `xhigh` 和 `max` 没有自定义预算字段,会走提供商的默认 token 分配策略——不需要为这两个等级设置自定义预算。
+
 ## 发布
 
 完整的逐步说明(含发布后检查清单)见 [`PUBLISHING.md`](../PUBLISHING.md)。摘要:
@@ -198,14 +280,15 @@ node scripts/e2e-write.mjs   [baseURL]   # 端到端写入冒烟测试(先备份
 - `npm publish` —— 构建后发布(`prepublishOnly` 钩子会自动重建)。包内包含 `lib/`、`cordis.patch.yml`、`img/`、许可证、英文 README 与 `docs/` 下的中文指南。
 - GitHub —— 建仓库并发布 release;版本号与 `package.json` 保持一致。
 
-## 相关插件
+## 贡献
 
-探索 DSH 插件生态中的其他插件:
+欢迎贡献代码!你可以通过以下方式帮助我们:
 
-- [**dsh-plugin-desktop-launcher**](https://www.npmjs.com/package/dsh-plugin-desktop-launcher) — DSH 网页版桌面快捷方式:一键安装、智能复用(运行中则直接打开浏览器)、完全卸载、跨平台(Windows/macOS/Linux)。
-- [**awesome-dsh-plugins**](https://github.com/yuioi666/awesome-dsh-plugins) — DSH 插件与资源精选列表(即将推出)。
+- **报告 Bug** —— 在 [GitHub Issues](https://github.com/yuioi666/dsh-plugin-model-capability/issues) 中提交,附带清晰的描述和复现步骤。
+- **建议功能** —— 使用[功能请求模板](https://github.com/yuioi666/dsh-plugin-model-capability/issues/new?template=feature_request.md)提交。
+- **提交 Pull Request** —— Fork 仓库,修改后提交 PR。请遵循现有代码风格,并在适当的地方包含测试。
 
-> 知道其他 DSH 插件? [推荐给我们](https://github.com/yuioi666/dsh-plugin-model-capability/issues/new)。
+本插件使用 esbuild 构建;修改 `src/` 文件后运行 `npm run build`。本地测试说明见[开发](#开发)章节。
 
 ## 许可证
 
