@@ -1,10 +1,9 @@
 // Data access layer for the Model Capability page.
 //
 // Reads come from the settings mirror through the bound scopes; writes go
-// straight to `ctx.remote.settings.mutate`/`replace` with full path ops and
-// `expectedRevision` fencing (scope.set is single-segment only, so nested
-// provider paths must be written directly — the same pattern the official
-// Models page uses).
+// through the scopes' own `mutate` method (SettingsScope.mutate) which queues
+// path-addressed operations with automatic serialization and revision fencing
+// — no need to go through the raw Typert Remote layer.
 //
 // Robustness rules:
 //   - a route that only exists in the composition base (or in the pi-ai
@@ -20,17 +19,12 @@
 import { deepClone, stripHeadersFromProviders } from "./constants.js";
 import { BUILTIN_PRESETS } from "./presets.js";
 
-export const NS = "llm-pi-ai";
-export const SELF_NS = "model-capability";
-export const LANGUAGE_FIELD = "language";
-export const CUSTOM_PRESETS_FIELD = "customPresets";
-
 export class CapabilityStore {
-  constructor({ remote, llmScope, selfScope, locale }) {
-    this.remote = remote;
+  constructor({ llmScope, selfScope, locale, remote }) {
     this.llmScope = llmScope;
     this.selfScope = selfScope;
     this.locale = locale;
+    this.remote = remote;
     /** Routes we already materialized into the user layer this session. */
     this.materialized = new Set();
   }
@@ -102,17 +96,19 @@ export class CapabilityStore {
 
   // ——— low-level writes ———
 
+  /** Write ops through the llm-pi-ai scope. */
   async writeOps(ops) {
     const snap = this.llmSnapshot();
-    const result = await this.remote.settings.mutate(
-      NS,
-      ops,
-      snap.revision,
-    );
-    if (!result.ok) {
-      return { ok: false, code: result.error?.code, message: result.error?.message };
+    try {
+      await this.llmScope.mutate(ops, snap.revision);
+      return { ok: true, revision: snap.revision };
+    } catch (err) {
+      return {
+        ok: false,
+        code: err?.code ?? "unknown",
+        message: err?.message ?? String(err),
+      };
     }
-    return { ok: true, revision: result.value.revision };
   }
 
   async writePath(path, value) {
@@ -121,6 +117,21 @@ export class CapabilityStore {
 
   async unsetPath(path) {
     return this.writeOps([{ op: "unset", path }]);
+  }
+
+  /** Write ops through the model-capability (self) scope. */
+  async writeSelfOps(ops) {
+    const snap = this.selfSnapshot();
+    try {
+      await this.selfScope.mutate(ops, snap.revision);
+      return { ok: true };
+    } catch (err) {
+      return {
+        ok: false,
+        code: err?.code ?? "unknown",
+        message: err?.message ?? String(err),
+      };
+    }
   }
 
   // ——— materialization ———
@@ -274,28 +285,16 @@ export class CapabilityStore {
       payload: JSON.stringify({ providers }),
     };
     const next = [...this.customPresets(), item];
-    const snap = this.selfSnapshot();
-    const result = await this.remote.settings.mutate(
-      SELF_NS,
-      [{ op: "set", path: [CUSTOM_PRESETS_FIELD], value: next }],
-      snap.revision,
-    );
-    return result.ok
-      ? { ok: true }
-      : { ok: false, code: result.error?.code, message: result.error?.message };
+    return this.writeSelfOps([
+      { op: "set", path: ["customPresets"], value: next },
+    ]);
   }
 
   async deleteCustomPreset(id) {
     const next = this.customPresets().filter((p) => p.id !== id);
-    const snap = this.selfSnapshot();
-    const result = await this.remote.settings.mutate(
-      SELF_NS,
-      [{ op: "set", path: [CUSTOM_PRESETS_FIELD], value: next }],
-      snap.revision,
-    );
-    return result.ok
-      ? { ok: true }
-      : { ok: false, code: result.error?.code, message: result.error?.message };
+    return this.writeSelfOps([
+      { op: "set", path: ["customPresets"], value: next },
+    ]);
   }
 
   /** Apply a custom preset: replaces the whole llm-pi-ai user section. */
@@ -313,31 +312,29 @@ export class CapabilityStore {
         ? parsed
         : { providers: parsed };
     const snap = this.llmSnapshot();
-    const result = await this.remote.settings.replace(
-      NS,
-      section,
-      snap.revision,
-    );
-    if (result.ok) {
+    try {
+      await this.llmScope.mutate(
+        [{ op: "set", path: [], value: section }],
+        snap.revision,
+      );
       this.materialized.clear();
       return { ok: true };
+    } catch (err) {
+      return {
+        ok: false,
+        code: err?.code ?? "unknown",
+        message: err?.message ?? String(err),
+      };
     }
-    return { ok: false, code: result.error?.code, message: result.error?.message };
   }
 
   // ——— self namespace (language) ———
 
   /** Persist the page language preference. */
   async setLanguage(value) {
-    const snap = this.selfSnapshot();
-    const result = await this.remote.settings.mutate(
-      SELF_NS,
-      [{ op: "set", path: [LANGUAGE_FIELD], value }],
-      snap.revision,
-    );
-    return result.ok
-      ? { ok: true }
-      : { ok: false, code: result.error?.code, message: result.error?.message };
+    return this.writeSelfOps([
+      { op: "set", path: ["language"], value },
+    ]);
   }
 }
 
