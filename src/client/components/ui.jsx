@@ -16,7 +16,7 @@ const inputStyle = {
   background: "transparent",
   border,
   borderRadius: 6,
-  padding: "4px 8px",
+  padding: "5px 10px",
   outline: "none",
   minWidth: 0,
   width: "100%",
@@ -30,9 +30,11 @@ export function Btn({ children, onClick, disabled, title, kind = "default", styl
     background: "transparent",
     border,
     borderRadius: 6,
-    padding: "4px 10px",
+    padding: "5px 12px",
     cursor: disabled ? "not-allowed" : "pointer",
     opacity: disabled ? 0.5 : 1,
+    whiteSpace: "nowrap",
+    transition: "background 0.15s, border-color 0.15s",
   };
   const kinds = {
     default: {},
@@ -61,9 +63,9 @@ export function Btn({ children, onClick, disabled, title, kind = "default", styl
 export function Field({ label, hint, children, style }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0, ...style }}>
-      <span style={{ fontSize: 12, opacity: 0.75 }}>{label}</span>
+      <span style={{ fontSize: 12, opacity: 0.75, fontWeight: 500 }}>{label}</span>
       {children}
-      {hint ? <span style={{ fontSize: 11, opacity: 0.55 }}>{hint}</span> : null}
+      {hint ? <span style={{ fontSize: 11, opacity: 0.55, lineHeight: 1.4 }}>{hint}</span> : null}
     </label>
   );
 }
@@ -117,7 +119,7 @@ export function CapacityInput({ value, onCommit, placeholder, disabled, hint, st
     if (parsed !== value && typeof onCommit === "function") onCommit(parsed);
   };
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2, width: "100%", ...style }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 3, width: "100%", ...style }}>
       <input
         value={draft}
         disabled={disabled}
@@ -133,7 +135,7 @@ export function CapacityInput({ value, onCommit, placeholder, disabled, hint, st
         }}
       />
       {hint ? (
-        <span style={{ fontSize: 11, opacity: 0.55 }}>{hint}</span>
+        <span style={{ fontSize: 11, opacity: 0.55, lineHeight: 1.4 }}>{hint}</span>
       ) : null}
     </div>
   );
@@ -211,7 +213,7 @@ export function Check({ label, checked, onChange, disabled, hint }) {
         checked={checked === true}
         disabled={disabled}
         onChange={(e) => typeof onChange === "function" && onChange(e.target.checked)}
-        style={{ marginTop: 3, accentColor: "currentColor" }}
+        style={{ marginTop: 3, accentColor: "currentColor", flexShrink: 0 }}
       />
       <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <span>{label}</span>
@@ -245,15 +247,15 @@ export function Fold({ title, badge, defaultOpen = false, children, right }) {
           background: "color-mix(in srgb, currentColor 5%, transparent)",
         }}
       >
-        <span style={{ fontSize: 12, opacity: 0.7, width: 14, display: "inline-block" }}>
+        <span style={{ fontSize: 11, opacity: 0.6, width: 14, display: "inline-flex", justifyContent: "center", flexShrink: 0 }}>
           {open ? "▾" : "▸"}
         </span>
-        <span style={{ fontWeight: 600 }}>{title}</span>
+        <span style={{ fontWeight: 600, fontSize: 13 }}>{title}</span>
         {badge ? <Badge tone="neutral">{badge}</Badge> : null}
         <span style={{ flex: 1 }} />
         {right}
       </div>
-      {open ? <div style={{ padding: 12 }}>{children}</div> : null}
+      {open ? <div style={{ padding: "10px 12px" }}>{children}</div> : null}
     </div>
   );
 }
@@ -273,7 +275,7 @@ export function Badge({ children, tone = "neutral" }) {
         padding: "1px 7px",
         borderRadius: 999,
         border,
-        opacity: 0.9,
+        opacity: 0.85,
         whiteSpace: "nowrap",
         ...badgeTones[tone],
       }}
@@ -294,6 +296,7 @@ export function WarningBox({ children, tone = "warn" }) {
         borderRadius: 8,
         padding: "8px 12px",
         fontSize: 13,
+        lineHeight: 1.5,
         ...(tone === "warn"
           ? { borderColor: "color-mix(in srgb, #d97706 45%, transparent)" }
           : tone === "bad"
@@ -301,7 +304,7 @@ export function WarningBox({ children, tone = "warn" }) {
             : {}),
       }}
     >
-      <span style={{ opacity: 0.8 }}>{tone === "bad" ? "✕" : tone === "good" ? "✓" : "ℹ"}</span>
+      <span style={{ opacity: 0.8, flexShrink: 0 }}>{tone === "bad" ? "✕" : tone === "good" ? "✓" : "ℹ"}</span>
       <span>{children}</span>
     </div>
   );
@@ -355,8 +358,8 @@ export function Modal({ title, children, onClose }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <span style={{ fontWeight: 700, flex: 1 }}>{title}</span>
-          <Btn onClick={onClose} title="close" style={{ padding: "2px 8px" }}>
+          <span style={{ fontWeight: 700, flex: 1, fontSize: 14 }}>{title}</span>
+          <Btn onClick={onClose} title="close" style={{ padding: "2px 8px", fontSize: 13 }}>
             ✕
           </Btn>
         </div>
@@ -376,6 +379,7 @@ export function Toast({ toast }) {
         borderRadius: 8,
         padding: "8px 12px",
         fontSize: 13,
+        lineHeight: 1.5,
         ...(toast.tone === "bad"
           ? { borderColor: "color-mix(in srgb, #dc2626 50%, transparent)" }
           : toast.tone === "good"

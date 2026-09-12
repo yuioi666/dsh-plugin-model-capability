@@ -17,7 +17,7 @@ function useScope(scope) {
   );
 }
 
-export function Section({ store, owner }) {
+export function Section({ store }) {
   const [toast, setToast] = useState(null);
   // Re-render whenever either scope changes (revision/new value).
   useScope(store.llmScope);
@@ -65,7 +65,7 @@ export function Section({ store, owner }) {
         </label>
       </div>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
         {store.writable() ? <Badge tone="good">{t("writableHost")}</Badge> : null}
         {!store.writable() ? <Badge tone="warn">{t("notWritable")}</Badge> : null}
         {snap.mode === "memory" ? <Badge tone="warn">{t("memoryMode")}</Badge> : null}

@@ -101,11 +101,11 @@ export function ModelEditor({ store, t, route, model, onToast, disabled }) {
         padding: 12,
         display: "flex",
         flexDirection: "column",
-        gap: 10,
+        gap: 12,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontWeight: 600, wordBreak: "break-all" }}>{modelId}</span>
+        <span style={{ fontWeight: 600, wordBreak: "break-all", fontSize: 13 }}>{modelId}</span>
         {thinkingOff ? <Badge tone="neutral">{t("off")}</Badge> : null}
         <span style={{ flex: 1 }} />
         <Btn
@@ -168,16 +168,16 @@ export function ModelEditor({ store, t, route, model, onToast, disabled }) {
       </Grid>
 
       {!thinkingOff ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 12, opacity: 0.7 }}>{t("thinkingHint")}</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
             {THINKING_LEVELS.map((level) => {
               const raw = efforts[level];
               const value = raw === void 0 || raw === null ? "" : String(raw);
               const isOff = level === "off";
               return (
                 <div key={level} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 110, fontSize: 13, opacity: 0.9, flexShrink: 0 }}>
+                  <span style={{ width: 100, fontSize: 13, opacity: 0.9, flexShrink: 0 }}>
                     {t(`level${level[0].toUpperCase()}${level.slice(1)}`)}
                   </span>
                   <TextInput
@@ -192,7 +192,6 @@ export function ModelEditor({ store, t, route, model, onToast, disabled }) {
                     }
                     width="100%"
                   />
-                  {isOff ? <span style={{ fontSize: 11, opacity: 0.5 }}>{t("offPlaceholder")}</span> : null}
                 </div>
               );
             })}
@@ -218,11 +217,6 @@ export function ModelEditor({ store, t, route, model, onToast, disabled }) {
       </Fold>
     </div>
   );
-}
-
-function modelIndexFor(store, route, modelId) {
-  const index = store.modelIndexById(route, modelId);
-  return String(index < 0 ? 0 : index);
 }
 
 const border = "1px solid color-mix(in srgb, currentColor 22%, transparent)";

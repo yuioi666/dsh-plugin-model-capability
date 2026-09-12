@@ -2,7 +2,7 @@
 //
 // Registers the "Model Capability" settings section and wires the page to the
 // `llm-pi-ai` settings namespace (read via the settings mirror, write via
-// `api.settings.mutate` path ops with revision fencing).
+// `remote.settings.mutate` path ops with revision fencing).
 
 import { en, zh } from "./dict.js";
 import { CapabilityStore } from "./store.js";
@@ -13,7 +13,6 @@ const NS = "settings.model-capability";
 const inject = [
   "slots",
   "locale",
-  "connection",
   "remote",
   "settingsScope",
   "settingsSchema",
@@ -25,14 +24,13 @@ function apply(ctx) {
     "model-capability: copy dictionaries",
   );
   const t = ctx.locale.bind(NS);
-  const connection = ctx.get("connection");
   const locale = ctx.get("locale");
   const settingsScope = ctx.get("settingsScope");
 
   const llmScope = settingsScope.bind({ namespace: "llm-pi-ai" });
   const selfScope = settingsScope.bind({ namespace: "model-capability" });
   const store = new CapabilityStore({
-    api: connection.api,
+    remote: ctx.remote,
     llmScope,
     selfScope,
     locale,

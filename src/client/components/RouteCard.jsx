@@ -88,8 +88,8 @@ export function RouteCard({ store, t, route, onToast, disabled, defaultOpen }) {
           ) : null}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 600 }}>{`${models.length} ${t("model")}`}</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 500 }}>{`${models.length} ${t("model")}`}</div>
           {models.length === 0 ? (
             <div style={{ fontSize: 12, opacity: 0.6 }}>{t("diagNoModels").replace("{route}", route)}</div>
           ) : (

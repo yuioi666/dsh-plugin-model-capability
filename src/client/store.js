@@ -1,7 +1,7 @@
 // Data access layer for the Model Capability page.
 //
 // Reads come from the settings mirror through the bound scopes; writes go
-// straight to `api.settings.mutate`/`replace` with full path ops and
+// straight to `ctx.remote.settings.mutate`/`replace` with full path ops and
 // `expectedRevision` fencing (scope.set is single-segment only, so nested
 // provider paths must be written directly — the same pattern the official
 // Models page uses).
@@ -26,8 +26,8 @@ export const LANGUAGE_FIELD = "language";
 export const CUSTOM_PRESETS_FIELD = "customPresets";
 
 export class CapabilityStore {
-  constructor({ api, llmScope, selfScope, locale }) {
-    this.api = api;
+  constructor({ remote, llmScope, selfScope, locale }) {
+    this.remote = remote;
     this.llmScope = llmScope;
     this.selfScope = selfScope;
     this.locale = locale;
@@ -104,15 +104,15 @@ export class CapabilityStore {
 
   async writeOps(ops) {
     const snap = this.llmSnapshot();
-    const result = await this.api.settings.mutate({
-      ns: NS,
+    const result = await this.remote.settings.mutate(
+      NS,
       ops,
-      ...(snap.revision === void 0 ? {} : { expectedRevision: snap.revision }),
-    });
-    if (!result.result.ok) {
-      return { ok: false, code: result.result.error?.code, message: result.result.error?.message };
+      snap.revision,
+    );
+    if (!result.ok) {
+      return { ok: false, code: result.error?.code, message: result.error?.message };
     }
-    return { ok: true, revision: result.result.value.revision };
+    return { ok: true, revision: result.value.revision };
   }
 
   async writePath(path, value) {
@@ -182,10 +182,7 @@ export class CapabilityStore {
     return this.writePath(["providers", route], patched);
   }
 
-  /** Write a single compat field on one model, preserving the whole route array.
-   *  Unlike writeRouteField, this does NOT go through applyPathOp on the
-   *  models array — it clones the entire route, patches the target model's
-   *  compat, and writes the whole route back. */
+  /** Write a single compat field on one model, preserving the whole route array. */
   async writeModelCompatField(route, modelId, field, value, { unset = false } = {}) {
     const materialized = await this.ensureRouteMaterialized(route);
     if (!materialized.ok) return materialized;
@@ -262,9 +259,7 @@ export class CapabilityStore {
     return Array.isArray(self.customPresets) ? self.customPresets : [];
   }
 
-  /** Save the current user providers as a custom preset.
-   *  NOTE: all `headers` dicts are stripped from the snapshot to prevent
-   *  credential leaks (Authorization, api-key, etc.). */
+  /** Save the current user providers as a custom preset. */
   async saveCustomPreset(name) {
     const rawProviders = this.userProviders();
     if (Object.keys(rawProviders).length === 0) {
@@ -280,27 +275,27 @@ export class CapabilityStore {
     };
     const next = [...this.customPresets(), item];
     const snap = this.selfSnapshot();
-    const result = await this.api.settings.mutate({
-      ns: SELF_NS,
-      ops: [{ op: "set", path: [CUSTOM_PRESETS_FIELD], value: next }],
-      ...(snap.revision === void 0 ? {} : { expectedRevision: snap.revision }),
-    });
-    return result.result.ok
+    const result = await this.remote.settings.mutate(
+      SELF_NS,
+      [{ op: "set", path: [CUSTOM_PRESETS_FIELD], value: next }],
+      snap.revision,
+    );
+    return result.ok
       ? { ok: true }
-      : { ok: false, code: result.result.error?.code, message: result.result.error?.message };
+      : { ok: false, code: result.error?.code, message: result.error?.message };
   }
 
   async deleteCustomPreset(id) {
     const next = this.customPresets().filter((p) => p.id !== id);
     const snap = this.selfSnapshot();
-    const result = await this.api.settings.mutate({
-      ns: SELF_NS,
-      ops: [{ op: "set", path: [CUSTOM_PRESETS_FIELD], value: next }],
-      ...(snap.revision === void 0 ? {} : { expectedRevision: snap.revision }),
-    });
-    return result.result.ok
+    const result = await this.remote.settings.mutate(
+      SELF_NS,
+      [{ op: "set", path: [CUSTOM_PRESETS_FIELD], value: next }],
+      snap.revision,
+    );
+    return result.ok
       ? { ok: true }
-      : { ok: false, code: result.result.error?.code, message: result.result.error?.message };
+      : { ok: false, code: result.error?.code, message: result.error?.message };
   }
 
   /** Apply a custom preset: replaces the whole llm-pi-ai user section. */
@@ -318,16 +313,16 @@ export class CapabilityStore {
         ? parsed
         : { providers: parsed };
     const snap = this.llmSnapshot();
-    const result = await this.api.settings.replace({
-      ns: NS,
+    const result = await this.remote.settings.replace(
+      NS,
       section,
-      ...(snap.revision === void 0 ? {} : { expectedRevision: snap.revision }),
-    });
-    if (result.result.ok) {
+      snap.revision,
+    );
+    if (result.ok) {
       this.materialized.clear();
       return { ok: true };
     }
-    return { ok: false, code: result.result.error?.code, message: result.result.error?.message };
+    return { ok: false, code: result.error?.code, message: result.error?.message };
   }
 
   // ——— self namespace (language) ———
@@ -335,16 +330,16 @@ export class CapabilityStore {
   /** Persist the page language preference. */
   async setLanguage(value) {
     const snap = this.selfSnapshot();
-    const result = await this.api.settings.mutate({
-      ns: SELF_NS,
-      ops: [{ op: "set", path: [LANGUAGE_FIELD], value }],
-      ...(snap.revision === void 0 ? {} : { expectedRevision: snap.revision }),
-    });
-    return result.result.ok
+    const result = await this.remote.settings.mutate(
+      SELF_NS,
+      [{ op: "set", path: [LANGUAGE_FIELD], value }],
+      snap.revision,
+    );
+    return result.ok
       ? { ok: true }
-      : { ok: false, code: result.result.error?.code, message: result.result.error?.message };
+      : { ok: false, code: result.error?.code, message: result.error?.message };
   }
 }
 
-/** Sentinel value meaning “remove this field from the user layer”. */
+/** Sentinel value meaning "remove this field from the user layer". */
 export const UNSET = Symbol("unset");
