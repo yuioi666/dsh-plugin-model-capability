@@ -45,6 +45,7 @@ const args = [
   "--jsx=automatic",
   "--external:react",
   "--external:react/jsx-runtime",
+  "--external:react-dom",
   "--external:@deepseek-ai/cordis",
   `--banner:js=${banner}`,
   `--footer:js=${footer}`,

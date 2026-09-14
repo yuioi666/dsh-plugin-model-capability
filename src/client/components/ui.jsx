@@ -4,7 +4,8 @@
 // `currentColor`, so the page reads correctly in both light and dark DSH
 // themes without depending on theme token names.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { formatCapacity, parseCapacity } from "../constants.js";
 
 const border = "1px solid color-mix(in srgb, currentColor 22%, transparent)";
@@ -175,33 +176,217 @@ export function NumberInput({ value, onCommit, placeholder, disabled, style }) {
   );
 }
 
-/** Select with an optional "(default)" unset entry. */
+/** Custom dropdown select that renders in the DOM instead of using a native
+ * <select>. Native <select> dropdowns are rendered as OS-level popups which
+ * ignore page styles — they show a white background with invisible light text
+ * in dark mode (Chrome on Windows). This custom version uses theme-aware CSS
+ * system colors so the popup reads correctly in both light and dark DSH themes.
+ */
 export function Select({ value, options, onChange, allowUnset, unsetLabel, disabled, style }) {
+  const [open, setOpen] = useState(false);
+  const [focusedIdx, setFocusedIdx] = useState(-1);
+  const triggerRef = useRef(null);
+  const wrapperRef = useRef(null);
+
   const present = value !== void 0 && value !== null;
+
+  // Build the full item list (unset option + user options) for navigation.
+  const allItems = [];
+  if (!present && allowUnset) allItems.push({ label: unsetLabel, val: void 0, isUnset: true });
+  if (present && allowUnset) allItems.push({ label: unsetLabel, val: void 0, isUnset: true });
+  if (!present && !allowUnset) allItems.push({ label: "—", val: void 0, isDisabled: true });
+  for (const option of options) {
+    const label = typeof option === "string" ? option : option.label;
+    const val = typeof option === "string" ? option : option.value;
+    allItems.push({ label, val: String(val), raw: val });
+  }
+
+  // Current display label.
+  let currentLabel = present ? String(value) : (unsetLabel || "—");
+  if (present) {
+    const match = options.find((opt) => {
+      const val = typeof opt === "string" ? opt : opt.value;
+      return String(val) === String(value);
+    });
+    if (match) currentLabel = typeof match === "string" ? match : match.label;
+  }
+
+  // Close on outside click.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  // Close / navigate on keyboard.
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedIdx((prev) => {
+          let next = prev < 0 ? 0 : prev + 1;
+          if (next >= allItems.length) next = 0;
+          return next;
+        });
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedIdx((prev) => {
+          let next = prev <= 0 ? allItems.length - 1 : prev - 1;
+          return next;
+        });
+        return;
+      }
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        const item = allItems[focusedIdx];
+        if (item && !item.isDisabled) {
+          setOpen(false);
+          onChange(item.raw);
+          triggerRef.current?.focus();
+        }
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open, focusedIdx, allItems, onChange]);
+
+  // Reset focused index when opening.
+  useEffect(() => {
+    if (open) {
+      const defaultIdx = present
+        ? allItems.findIndex((item) => !item.isUnset && String(item.raw) === String(value))
+        : 0;
+      setFocusedIdx(defaultIdx >= 0 ? defaultIdx : 0);
+    } else {
+      setFocusedIdx(-1);
+    }
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleClickOption = (item) => {
+    if (item.isDisabled) return;
+    setOpen(false);
+    onChange(item.raw);
+    triggerRef.current?.focus();
+  };
+
+  const triggerStyle = {
+    ...inputStyle,
+    cursor: disabled ? "not-allowed" : "pointer",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    opacity: disabled ? 0.5 : 1,
+    ...style,
+  };
+
+  const dropdownStyle = {
+    position: "fixed",
+    zIndex: 9999,
+    background: "Canvas",
+    color: "CanvasText",
+    border,
+    borderRadius: 6,
+    maxHeight: 220,
+    overflow: "auto",
+    boxShadow: "0 6px 24px rgba(0,0,0,0.3)",
+    minWidth: 120,
+  };
+
+  const optionBase = {
+    padding: "6px 10px",
+    cursor: "pointer",
+    fontSize: "inherit",
+    lineHeight: 1.4,
+    transition: "background 0.08s",
+  };
+
   return (
-    <select
-      value={present ? String(value) : ""}
-      disabled={disabled}
-      onChange={(e) => {
-        const text = e.target.value;
-        if (text === "__unset__") onChange(void 0);
-        else onChange(text);
-      }}
-      style={{ ...inputStyle, cursor: "pointer", ...style }}
-    >
-      {!present && allowUnset ? <option value="">{unsetLabel}</option> : null}
-      {present && allowUnset ? <option value="__unset__">{unsetLabel}</option> : null}
-      {!present && !allowUnset ? <option value="">—</option> : null}
-      {options.map((option) => {
-        const label = typeof option === "string" ? option : option.label;
-        const value_ = typeof option === "string" ? option : option.value;
-        return (
-          <option key={value_} value={String(value_)}>
-            {label}
-          </option>
-        );
-      })}
-    </select>
+    <div ref={wrapperRef} style={{ position: "relative", ...style }}>
+      <div
+        ref={triggerRef}
+        role="combobox"
+        tabIndex={disabled ? -1 : 0}
+        aria-expanded={open}
+        aria-disabled={disabled}
+        aria-haspopup="listbox"
+        onClick={() => { if (!disabled) setOpen((v) => !v); }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+            e.preventDefault();
+            if (!disabled) setOpen(true);
+          }
+        }}
+        style={triggerStyle}
+      >
+        <span
+          style={{
+            flex: 1,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            opacity: present ? 1 : 0.5,
+          }}
+        >
+          {currentLabel}
+        </span>
+        <span style={{ fontSize: 9, opacity: 0.45, flexShrink: 0, lineHeight: 1 }}>▾</span>
+      </div>
+
+      {open &&
+        createPortal(
+          <div
+            role="listbox"
+            style={dropdownStyle}
+            ref={(el) => {
+              if (el && triggerRef.current) {
+                const rect = triggerRef.current.getBoundingClientRect();
+                el.style.top = `${rect.bottom + 2}px`;
+                el.style.left = `${rect.left}px`;
+                el.style.width = `${rect.width}px`;
+              }
+            }}
+          >
+            {allItems.map((item, idx) => (
+              <div
+                key={idx}
+                role="option"
+                aria-selected={present && String(item.raw) === String(value)}
+                onClick={() => handleClickOption(item)}
+                onMouseEnter={() => setFocusedIdx(idx)}
+                style={{
+                  ...optionBase,
+                  fontWeight: present && String(item.raw) === String(value) ? 600 : 400,
+                  opacity: item.isDisabled ? 0.4 : 1,
+                  cursor: item.isDisabled ? "default" : "pointer",
+                  background:
+                    focusedIdx === idx
+                      ? "color-mix(in srgb, currentColor 14%, transparent)"
+                      : present && String(item.raw) === String(value)
+                        ? "color-mix(in srgb, currentColor 7%, transparent)"
+                        : "transparent",
+                  borderBottom: idx < allItems.length - 1 ? border : "none",
+                }}
+              >
+                {item.label}
+              </div>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </div>
   );
 }
 

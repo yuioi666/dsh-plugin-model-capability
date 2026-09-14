@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-model-capability",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Model Capability Manager for DSH Web: per-model thinking levels, context window, output caps, input modalities, gateway compat, route defaults, one-click presets, EN/中文 UI.",
   "license": "MIT",
   "author": "dsh-plugin-model-capability contributors",
