@@ -187,6 +187,7 @@ export function Select({ value, options, onChange, allowUnset, unsetLabel, disab
   const [focusedIdx, setFocusedIdx] = useState(-1);
   const triggerRef = useRef(null);
   const wrapperRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const present = value !== void 0 && value !== null;
 
@@ -215,7 +216,12 @@ export function Select({ value, options, onChange, allowUnset, unsetLabel, disab
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+      const inTrigger = wrapperRef.current?.contains(e.target);
+      const inDropdown = dropdownRef.current?.contains(e.target);
+      // The listbox is rendered through a portal under document.body, so it
+      // is not a DOM descendant of wrapperRef. Treat both trees as inside;
+      // otherwise mousedown unmounts the option before its click can commit.
+      if (!inTrigger && !inDropdown) {
         setOpen(false);
       }
     };
@@ -351,6 +357,7 @@ export function Select({ value, options, onChange, allowUnset, unsetLabel, disab
             role="listbox"
             style={dropdownStyle}
             ref={(el) => {
+              dropdownRef.current = el;
               if (el && triggerRef.current) {
                 const rect = triggerRef.current.getBoundingClientRect();
                 el.style.top = `${rect.bottom + 2}px`;

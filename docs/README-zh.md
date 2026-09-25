@@ -60,6 +60,12 @@ DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。
   - `displayName`、`baseURL`、`api`(openai-completions / openai-responses / anthropic-messages)。
   - 默认值:`defaultContextWindow`、`defaultMaxTokens`、`defaultInput`、`reasoning`、`thinkingBudgets`(minimal/low/medium/high)、`cacheRetention`、`transport`。
   - 路由级 `compat` 编辑器 + **高级**折叠:超时、图片字节/像素预算、`headers`,以及只读的原始 JSON 视图。
+- **可控的 [models.dev](https://models.dev/) 同步**:
+  - 只有点击**加载目录**时才读取缓存或请求 `api.json`;**拉取最新目录**会明确刷新数据。每条本地路由都能映射到 models.dev 提供商,也可排除。
+  - 写入前显示预览计数。只更新 ID 匹配的现有模型,匹配不区分大小写;不会新增或删除路由、模型。
+  - 可分别选择 `name`、上下文上限、输出上限和受支持的 `text`/`image` 输入模态。推理映射默认关闭,因为不同提供商的线上语义不同。明确的 effort 列表会被映射,`reasoning: false` 会关闭推理,只有开关或未知格式时保留手动值。
+  - 浏览器 `localStorage` 保存最近一次校验成功的精简目录,有效期 24 小时。刷新失败时可使用过期的最后可用缓存;没有有效缓存则停止,不修改设置。
+  - 应用预览只产生一次带修订门闩的设置写入,未纳入同步的字段和手动配置都会保留。
 - **一键预设** —— 7 个内置配方 + 自定义保存:
   | 预设 | 作用 |
   | --- | --- |
@@ -191,12 +197,19 @@ pnpm remove dsh-plugin-model-capability
 
 > **提示:** 如果页面顶部显示「建议检查」,请仔细查看——它们会标记常见的配置错误,比如旧式网关却开着 `supportsDeveloperRole`。
 
+### 可选步骤:同步公开能力数据
+
+展开**从 models.dev 同步**,点击**加载目录**(或用**拉取最新目录**跳过新鲜缓存),检查或修改每条路由到提供商的映射,再选择需要更新的字段。确认已匹配、将变更和未匹配数量后,点击**应用预览中的变更**。这个流程与手动编辑和预设并存,不会替代它们。
+
+适配器按 models.dev 的 `provider.models[modelId]` 结构读取 `name`、`limit.context`、`limit.output`、`modalities.input`、`reasoning` 和 `reasoning_options`。未知字段和不受支持的模态会被忽略,因此上游扩展格式时不会意外覆盖本地配置。
+
 ## 工作原理
 
 一个 npm 包、两个半区,由 `dsh plugin add` 作为 **profile bundle** 安装:
 
 - `lib/index.js` —— **宿主半区**:用 schemastery 注册 `model-capability` 设置命名空间(语言 + 自定义预设),和原生设置一样参与宿主往返校验。
 - `lib/client.js` —— **网页客户端半区**:以经典脚本 bundle 注册进网页壳的模块加载器(`window.__ModuleLoader__.load({ id, factory })`),与官方所有 `@deepseek-ai` 客户端 bundle 完全同构。它向 `settings.section` 槽注入区块、绑定 `llm-pi-ai` 与 `model-capability` 两个 settings scope,所有编辑都经 `api.settings.mutate` 的路径操作 + 修订门闩执行。
+- `src/client/models-dev.js` —— 校验和精简远端目录,管理本地缓存与回退,并为设置层生成不破坏现有字段的路由替换值。
 - `cordis.patch.yml` —— 声明 bundle 行,`dsh plugin add` 自动完成全部接线,无需手改 patch。
 
 `llm-pi-ai` 的 schema 归 DSH 所有 —— 本插件只改它的**值**,宿主端每次写入仍会完整校验(如 `assertServiceable`)。
@@ -206,6 +219,7 @@ pnpm remove dsh-plugin-model-capability
 ```bash
 pnpm install
 npm run build        # esbuild → lib/client.js(带 loader 包装)+ lib/index.js
+npm test             # 覆盖映射、字段保留、缓存与回退
 ```
 
 本地验证:建一个开发 profile(如 `web-dev`),装上 web app 和插件,在独立端口重启:

@@ -60,6 +60,12 @@ This plugin gives you a GUI for all of it, plus **one-click presets** that bake 
   - `displayName`, `baseURL`, `api` (openai-completions / openai-responses / anthropic-messages).
   - Defaults: `defaultContextWindow`, `defaultMaxTokens`, `defaultInput`, `reasoning`, `thinkingBudgets` (minimal/low/medium/high), `cacheRetention`, `transport`.
   - Route-level `compat` editor and an **Advanced** fold: timeouts, max image bytes / pixel budget, `headers`, plus a read-only raw JSON view.
+- **Controlled [models.dev](https://models.dev/) synchronization**:
+  - Reads the cache or fetches `api.json` only when you click **Load catalog**; **Fetch latest catalog** explicitly refreshes it. Each local route can be mapped to a models.dev provider or excluded.
+  - Shows a dry-run count before writing. Only existing models whose IDs match (case-insensitively) are updated; no route or model is added or removed.
+  - `name`, context limit, output limit, and supported `text`/`image` inputs are independently selectable. Reasoning is opt-in because provider wire semantics vary: explicit effort lists are mapped, `reasoning: false` disables reasoning, and toggle-only/unknown formats preserve the manual value.
+  - A validated, compact copy of the last successful catalog is cached in browser `localStorage` for 24 hours. A failed refresh can use that stale last-known-good catalog; without a valid cache, the operation stops without touching settings.
+  - Applying a preview is one revision-fenced settings mutation. Unmanaged and manually edited fields are preserved.
 - **One-click presets** — 7 built-in recipes plus your own saved presets:
   | Preset | What it does |
   | --- | --- |
@@ -206,12 +212,19 @@ All changes are saved immediately through the DSH settings service with revision
 
 > **Tip:** If the page shows "Advisory checks" at the top, review them — they flag common misconfigurations like legacy gateways with `supportsDeveloperRole` enabled.
 
+### Optional: sync published capabilities
+
+Open **Sync from models.dev**, click **Load catalog** (or **Fetch latest catalog** to bypass a fresh cache), verify or change each route-to-provider mapping, and choose the fields to update. Review the matched/changed/unmatched counts before clicking **Apply previewed changes**. This workflow complements manual editing and presets; it does not replace either one.
+
+The adapter follows the models.dev shape `provider.models[modelId]` and currently reads `name`, `limit.context`, `limit.output`, `modalities.input`, `reasoning`, and `reasoning_options`. Unknown fields and unsupported modalities are ignored, so an upstream schema extension does not overwrite local configuration accidentally.
+
 ## How it works
 
 One npm package with two halves, installed as a **profile bundle** by `dsh plugin add`:
 
 - `lib/index.js` — the **host half**: registers the `model-capability` settings namespace (language + custom presets) with schemastery so the Host round-trips it like any native setting.
 - `lib/client.js` — the **web client half**: a classic-script bundle registered with the web shell's module loader (`window.__ModuleLoader__.load({ id, factory })`), exactly like every shipped `@deepseek-ai` client bundle. It injects a section into the `settings.section` slot, binds both the `llm-pi-ai` and `model-capability` settings scopes, and drives all edits through `api.settings.mutate` with path ops and revision fencing.
+- `src/client/models-dev.js` — validates and normalizes the remote catalog, owns the local cache/fallback policy, and creates non-destructive route replacements for the settings layer.
 - `cordis.patch.yml` — declares the bundle row, so `dsh plugin add` wires the whole thing automatically (no manual patch editing).
 
 The `llm-pi-ai` schema itself is owned by DSH — this plugin only edits its *values*, so the Host keeps validating every write (`assertServiceable` etc.).
@@ -221,6 +234,7 @@ The `llm-pi-ai` schema itself is owned by DSH — this plugin only edits its *va
 ```bash
 pnpm install
 npm run build        # esbuild → lib/client.js (loader-wrapped) + lib/index.js
+npm test             # mapping, preservation, cache, and fallback tests
 ```
 
 Local testing: create a dev profile (e.g. `web-dev`), add the web app and the plugin, and restart the server on a separate port:

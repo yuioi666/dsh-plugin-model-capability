@@ -5,6 +5,7 @@ import { localize, en as enDict, zh as zhDict } from "../dict.js";
 import { isCredentialHeader, looksLikeLegacyGateway, THINKING_LEVELS } from "../constants.js";
 import { Badge, Fold, Select, Toast, WarningBox } from "./ui.jsx";
 import { PresetBar } from "./PresetBar.jsx";
+import { ModelsDevSync } from "./ModelsDevSync.jsx";
 import { RouteCard } from "./RouteCard.jsx";
 
 const dicts = { en: enDict, zh: zhDict };
@@ -89,6 +90,10 @@ export function Section({ store }) {
 
       <div style={{ border: "1px solid color-mix(in srgb, currentColor 22%, transparent)", borderRadius: 10, padding: 14 }}>
         <PresetBar store={store} t={t} routes={routes} onToast={notify} disabled={disabled} />
+      </div>
+
+      <div style={{ border: "1px solid color-mix(in srgb, currentColor 22%, transparent)", borderRadius: 10, padding: 14 }}>
+        <ModelsDevSync store={store} t={t} routes={routes} onToast={notify} disabled={disabled} />
       </div>
 
       <div style={{ fontSize: 12, opacity: 0.7, fontWeight: 600 }}>

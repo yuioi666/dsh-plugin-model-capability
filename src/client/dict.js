@@ -174,6 +174,35 @@ export const en = {
   presetCorrupt: "This preset contains invalid data and could not be applied.",
   presetNotFound: "Preset not found.",
 
+  // models.dev synchronization
+  syncTitle: "Sync from models.dev",
+  syncIntro:
+    "Fetch capabilities on demand, map each local route to a models.dev provider, preview the match, then apply. Only existing models with matching IDs are updated; routes and models are never added or removed.",
+  syncLoad: "Load catalog",
+  syncRefresh: "Fetch latest catalog",
+  syncLoading: "Fetching…",
+  syncSource_network: "models.dev live data",
+  syncSource_cache: "local cache",
+  syncSource_fallback: "stale local fallback",
+  syncUnavailable: "The catalog could not be loaded; settings were not changed.",
+  syncStaleFallback: "models.dev was unavailable, so the last successful local cache is shown.",
+  syncFields: "Fields to update",
+  syncField_name: "Display name",
+  syncField_contextWindow: "Context window",
+  syncField_maxTokens: "Max output",
+  syncField_input: "Input modalities",
+  syncField_reasoningEfforts: "Reasoning efforts",
+  syncReasoningHint:
+    "Reasoning sync is conservative and opt-in: false disables it; explicit effort values are mapped; toggle-only/unknown formats keep the current manual value.",
+  syncRouteMapping: "Route → models.dev provider",
+  syncDoNotSync: "Do not sync this route",
+  syncPreview:
+    "Preview: {matchedModels} matched, {changedModels} would change, {unmatchedModels} unmatched across {selectedRoutes} selected routes.",
+  syncSkippedReasoning: "{count} reasoning entries have no safe effort mapping and will remain unchanged.",
+  syncApply: "Apply previewed changes",
+  syncApplied: "Updated {count} models from models.dev.",
+  syncFailed: "models.dev sync was rejected:",
+
   // Credential-header warnings
   credentialHeaderWarning:
     "Credential-like header names detected: {names}. These are NOT redacted by the Settings service and will be saved into custom presets — consider using apiKeyEnv instead.",
@@ -363,6 +392,35 @@ export const zh = {
   confirmDeleteCustom: "删除该预设?",
   presetCorrupt: "该预设包含无效数据,无法应用。",
   presetNotFound: "未找到该预设。",
+
+  // models.dev 同步
+  syncTitle: "从 models.dev 同步",
+  syncIntro:
+    "按需拉取能力数据,逐条映射本地路由,预览匹配结果后再应用。只更新 ID 匹配的现有模型,绝不新增或删除路由与模型。",
+  syncLoad: "加载目录",
+  syncRefresh: "拉取最新目录",
+  syncLoading: "正在拉取…",
+  syncSource_network: "models.dev 在线数据",
+  syncSource_cache: "本地缓存",
+  syncSource_fallback: "过期本地回退",
+  syncUnavailable: "无法加载目录,设置未发生变化。",
+  syncStaleFallback: "models.dev 暂时不可用,当前显示上次成功保存的本地缓存。",
+  syncFields: "要更新的字段",
+  syncField_name: "显示名称",
+  syncField_contextWindow: "上下文窗口",
+  syncField_maxTokens: "最大输出",
+  syncField_input: "输入模态",
+  syncField_reasoningEfforts: "推理等级",
+  syncReasoningHint:
+    "推理同步默认关闭且采用保守映射。明确为 false 时关闭,明确给出 effort 值时映射;仅开关或未知格式保留当前手动值。",
+  syncRouteMapping: "路由 → models.dev 提供商",
+  syncDoNotSync: "不同步此路由",
+  syncPreview:
+    "预览:已匹配 {matchedModels} 个,将变更 {changedModels} 个,未匹配 {unmatchedModels} 个,共选择 {selectedRoutes} 条路由。",
+  syncSkippedReasoning: "{count} 条推理能力无法安全映射,将保留原值。",
+  syncApply: "应用预览中的变更",
+  syncApplied: "已从 models.dev 更新 {count} 个模型。",
+  syncFailed: "models.dev 同步被拒绝:",
 
   credentialHeaderWarning:
     "检测到类似凭据的请求头名称: {names}。设置服务不会对其进行脱敏处理,且会保存到自定义预设中——建议改用 apiKeyEnv。",

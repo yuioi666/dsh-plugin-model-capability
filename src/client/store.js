@@ -264,6 +264,23 @@ export class CapabilityStore {
     return this.writeOps(ops);
   }
 
+  /** Apply precomputed models.dev route replacements in one atomic mutation.
+   * Replacements are complete clones of resolved routes, so manual fields not
+   * managed by the sync adapter survive unchanged. */
+  async applyModelsDevSync(replacements) {
+    const ops = Object.entries(replacements ?? {}).map(([route, value]) => ({
+      op: "set",
+      path: ["providers", route],
+      value,
+    }));
+    if (ops.length === 0) return { ok: false, message: "sync-no-changes" };
+    const result = await this.writeOps(ops);
+    if (result.ok) {
+      for (const route of Object.keys(replacements)) this.materialized.add(route);
+    }
+    return result;
+  }
+
   customPresets() {
     const self = this.selfSnapshot().value;
     if (!self || typeof self !== "object") return [];
