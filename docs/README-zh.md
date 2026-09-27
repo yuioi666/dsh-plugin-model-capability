@@ -31,7 +31,7 @@
 
 ## 为什么要做这个插件
 
-DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。手改配置既容易出错,又经常撞上两类问题:
+DSH 的提供商配置存放在当前 profile 的 `llm-pi-ai.providers` 条目里。手改 profile patch 既容易出错,又经常撞上两类问题:
 
 1. **网关不适配** —— 不是所有厂商都接受同一套协议方言。例如阿里云(DashScope 兼容模式)、Moonshot/Kimi、智谱 BigModel、MiniMax、火山方舟 Ark、硅基流动 SiliconFlow、百度千帆等网关,可能不认 OpenAI/Anthropic 方言下的 `developer` 角色消息或 `reasoning_effort`,开了 `compat.supportsDeveloperRole` 就会报 400 之类错误。
 2. **思考等级接线** —— 7 档等级(`off / minimal / low / medium / high / xhigh / max`)每一档都需要一个上游能理解的 wire 值(同样是 low,有的厂商要 `"low"`,有的要 `"h3"`)。手动编写全档位、全模型的 `reasoningEfforts` 非常繁琐。
@@ -52,6 +52,7 @@ DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。
 
 - **每个模型的编辑器**:
   - `name`、`contextWindow`、`maxTokens` —— 容量字段支持纯数字或 `K`/`M` 后缀(`262144`、`256K`、`1M`)。
+  - 同时支持显式 `models` 列表和 DSH 0.1.7 保留内置目录的 `modelOverrides` 条目。
   - `input` 输入模态 —— `text` / `image` 复选,自动去重。
   - 思考开关 —— 在某模型上整体切换"关闭思考"与"完整 7 档矩阵"(off/minimal/low/medium/high/xhigh/max),每档可填独立 wire 值;非 off 档留空会被阻止(宿主端会拒绝),并提供**一键把全部档位填成同名值**的按钮。
   - **把字段应用到该路由的全部模型**(name / contextWindow / maxTokens / input / reasoningEfforts)。
@@ -59,7 +60,7 @@ DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。
 - **每个路由的编辑器**:
   - `displayName`、`baseURL`、`api`(openai-completions / openai-responses / anthropic-messages)。
   - 默认值:`defaultContextWindow`、`defaultMaxTokens`、`defaultInput`、`reasoning`、`thinkingBudgets`(minimal/low/medium/high)、`cacheRetention`、`transport`。
-  - 路由级 `compat` 编辑器 + **高级**折叠:超时、图片字节/像素预算、`headers`,以及只读的原始 JSON 视图。
+  - 路由级 `compat` 编辑器,包含 DSH 0.1.7 新增的结束原因、思考预算、`max_output_tokens`、Baseten 和 vLLM 控制,另有**高级**折叠用于超时、图片限制、`headers` 与原始 JSON。
 - **可控的 [models.dev](https://models.dev/) 同步**:
   - 只有点击**加载目录**时才读取缓存或请求 `api.json`;**拉取最新目录**会明确刷新数据。每条本地路由都能映射到 models.dev 提供商,也可排除。
   - 写入前显示预览计数。只更新 ID 匹配的现有模型,匹配不区分大小写;不会新增或删除路由、模型。
@@ -76,17 +77,19 @@ DSH 的提供商配置存放在 `settings.yaml` 的 `llm-pi-ai.providers` 里。
   | 全力思考(7 档) | 每个模型声明全部 7 档,`reasoning=high`,宽松的 `thinkingBudgets` |
   | 仅文本 | `defaultInput=['text']` + 每个模型 `input=['text']` |
   | 文本 + 图像 | `defaultInput=['text','image']` + 每个模型 `input=['text','image']` |
-  - 应用预设时可**勾选要应用的路由子集**。也可把当前配置保存为自定义预设,随时应用/删除;自定义预设存放在 `settings.yaml` 的 `model-capability.customPresets`。
-  - **应用自定义预设会替换整个 `llm-pi-ai` 用户配置段**(通过 `settings.replace`,不是合并)。预设保存之后新增的路由会被**删除**。这不是增量配方——请把预设视为完整快照。
+  - 应用预设时可**勾选要应用的路由子集**。也可把当前配置保存为自定义预设,随时应用/删除;自定义预设存放在当前 profile 配置的 `model-capability.customPresets`。
+  - **应用自定义预设会通过一次 ConfigForms 根级变更替换整个 `llm-pi-ai` 用户配置段**,而不是合并。预设保存之后新增的路由会被**删除**。这不是增量配方——请把预设视为完整快照。
   - **请求头凭据保护** —— 凭据类请求头名称(`authorization`、`api-key` 等)在请求头编辑器中会被**拦截**;保存自定义预设时,每条路由的 `headers` 字典会被**剥离**(凭据通过 `apiKeyEnv` 环境变量引用,不以字面请求头值保存)。此前保存的旧预设如果包含请求头凭据,会在启动时被检测并在建议检查中报告。
 - **建议检查** —— 页面给出当前配置的诊断:疑似旧式网关却开着 `supportsDeveloperRole`(提示改用安全网关预设)、某思考档没有对应 wire 值、模型未显式设置 `contextWindow`、路由下没有模型。
-- **语言切换** —— 默认跟随 DSH 界面语言;页面顶部的下拉可以固定为 **中文 / English / 跟随 DSH**,选择会持久化到 `settings.yaml`(字段 `model-capability.language`),不是只存在浏览器会话里。
+- **语言切换** —— 默认跟随 DSH 界面语言;页面顶部的下拉可以固定为 **中文 / English / 跟随 DSH**,选择会持久化到当前 profile(字段 `model-capability.language`),不是只存在浏览器会话里。
 
 所有写入都走 DSH settings 服务的修订门闩(`expectedRevision`),与内置模型页同款模式;并发冲突会通过实时镜像自动重试。如果从非回环地址打开(不允许写入),所有控件会禁用并提示原因。
 
 ## 安装
 
-需要装有 web 应用的 DSH(任何能打开浏览器界面的 profile),DSH ≥ 0.1.1-rc.2。
+需要装有 web 应用的 DSH(任何能打开浏览器界面的 profile),DSH ≥ 0.1.7-rc.2。插件 v1.4.0 已迁移到该版本线引入的 ConfigForms/volatile Config 设置内核。
+
+> **从旧版 DSH 升级:**DSH 0.1.7 会把旧 `settings.yaml` 的 section 一次性导入当前 profile,再把旧文件改名为 `settings.yaml.imported`。插件的 `model-capability` 条目会参与该迁移;不要把 imported 文件重新覆盖回 profile 配置。
 
 ### 安装最新版
 
@@ -207,8 +210,8 @@ pnpm remove dsh-plugin-model-capability
 
 一个 npm 包、两个半区,由 `dsh plugin add` 作为 **profile bundle** 安装:
 
-- `lib/index.js` —— **宿主半区**:用 schemastery 注册 `model-capability` 设置命名空间(语言 + 自定义预设),和原生设置一样参与宿主往返校验。
-- `lib/client.js` —— **网页客户端半区**:以经典脚本 bundle 注册进网页壳的模块加载器(`window.__ModuleLoader__.load({ id, factory })`),与官方所有 `@deepseek-ai` 客户端 bundle 完全同构。它向 `settings.section` 槽注入区块、绑定 `llm-pi-ai` 与 `model-capability` 两个 settings scope,所有编辑都经 `api.settings.mutate` 的路径操作 + 修订门闩执行。
+- `lib/index.js` —— **宿主半区**:导出 schemastery `Config`,其中 `language` 与 `customPresets` 标记为 volatile,由 DSH 0.1.7 从活动插件条目投影 `model-capability` 表单;同时关闭通用自动生成页,因为本 bundle 已提供专用页面。
+- `lib/client.js` —— **网页客户端半区**:以经典脚本 bundle 注册进网页壳的模块加载器,跟随宿主实际提供的 `llm-pi-ai` namespace,向 `settings.section` 槽注入页面,通过共享 `ctx.configForms` 镜像获取两个表单,所有编辑都走排队的路径操作与修订门闩。
 - `src/client/models-dev.js` —— 校验和精简远端目录,管理本地缓存与回退,并为设置层生成不破坏现有字段的路由替换值。
 - `cordis.patch.yml` —— 声明 bundle 行,`dsh plugin add` 自动完成全部接线,无需手改 patch。
 
@@ -225,7 +228,7 @@ npm test             # 覆盖映射、字段保留、缓存与回退
 本地验证:建一个开发 profile(如 `web-dev`),装上 web app 和插件,在独立端口重启:
 
 ```bash
-dsh plugin --profile web-dev add @deepseek-ai/dsh-web-app@0.1.1-rc.2
+dsh plugin --profile web-dev add @deepseek-ai/dsh-web-app@0.1.7-rc.2
 # 添加本地包后注意:`file:` 依赖是安装时快照,每次重新构建都要重装一次,
 # 或者把已装副本替换成指向源码的 junction,实现热更新:
 dsh plugin --profile web-dev add file:D:/path/to/dsh-plugin-model-capability
@@ -237,7 +240,7 @@ dsh --profile web-dev --port 3091 --no-open
 ```bash
 node scripts/screenshots.mjs [baseURL] [outDir]
 node scripts/verify-dom.mjs  [baseURL]   # 穿透 shadow DOM 的渲染检查
-node scripts/e2e-write.mjs   [baseURL]   # 端到端写入冒烟测试(先备份 settings.yaml!)
+node scripts/e2e-write.mjs   [baseURL]   # 端到端写入冒烟测试(先备份 profile 配置!)
 ```
 
 ## 常见问题 / 故障排除
@@ -256,7 +259,7 @@ DSH settings 服务只接受**回环地址**(即 `http://127.0.0.1:3080` 或 `ht
 
 ### 如何添加新的提供商路由?
 
-本插件编辑 `llm-pi-ai` 中已有的路由。要添加全新提供商,仍需手动编辑 `settings.yaml` 或使用 DSH CLI。添加后,下次加载页面时插件会自动识别。
+本插件编辑 `llm-pi-ai` 中已有的路由。请从 DSH 内置的**设置 → 模型**页面添加提供商;配置存在后,本插件会从共享设置镜像中识别。使用 `modelOverrides` 的目录路由会继续继承内置目录,不会被转换成显式模型列表。
 
 ### 如何将单个模型重置为默认值?
 
@@ -264,7 +267,7 @@ DSH settings 服务只接受**回环地址**(即 `http://127.0.0.1:3080` 或 `ht
 
 ### 语言设置为什么没有持久化?
 
-语言选择(`model-capability.language`)存储在 `settings.yaml` 中,重启后仍然保留。如果反复重置,请检查设置文件是否可写,以及是否有其他进程在覆盖它。
+语言选择(`model-capability.language`)存储在当前 profile 配置中,重启后仍然保留。如果反复重置,请检查 profile 是否可写,以及是否有其他进程在覆盖它。
 
 ### 为什么 `thinkingBudgets` 只有 minimal/low/medium/high 四个等级,而思考等级有 6 个?
 

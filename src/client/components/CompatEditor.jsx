@@ -7,10 +7,11 @@
 
 import {
   COMPAT_BOOLEAN_FIELDS,
+  COMPAT_NUMBER_FIELDS,
   COMPAT_SELECT_FIELDS,
 } from "../constants.js";
 import { en as enDict } from "../dict.js";
-import { Check, Field, Grid, Select } from "./ui.jsx";
+import { Check, Field, Grid, NumberInput, Select } from "./ui.jsx";
 
 export function CompatEditor({ store, t, route, suffixPath, compat, onToast, disabled, modelId }) {
   const isModel = modelId !== void 0 && modelId !== null;
@@ -77,6 +78,17 @@ export function CompatEditor({ store, t, route, suffixPath, compat, onToast, dis
               unsetLabel="—"
               disabled={disabled}
               onChange={(value) => setSelect(key, value)}
+            />
+          </Field>
+        ))}
+      </Grid>
+      <Grid columns={3}>
+        {COMPAT_NUMBER_FIELDS.map((field) => (
+          <Field key={field} label={t(field) ?? field}>
+            <NumberInput
+              value={compat?.[field]}
+              disabled={disabled}
+              onCommit={(value) => setSelect(field, value === null ? void 0 : value)}
             />
           </Field>
         ))}

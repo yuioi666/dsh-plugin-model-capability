@@ -26,6 +26,7 @@ export const THINKING_FORMATS = [
   "deepseek",
   "openrouter",
   "together",
+  "baseten",
   "zai",
   "qwen",
   "chat-template",
@@ -39,6 +40,13 @@ export const MAX_TOKENS_FIELDS = ["max_completion_tokens", "max_tokens"];
 
 /** cache-control marker conventions. */
 export const CACHE_CONTROL_FORMATS = ["anthropic"];
+
+/** Reasoning token-budget parameter spellings added in DSH 0.1.7. */
+export const THINKING_TOKEN_BUDGET_FIELDS = [
+  "thinking_token_budget",
+  "thinking_budget",
+  "thinking_budget_tokens",
+];
 
 /** transport choices of the provider profile. */
 export const TRANSPORTS = ["sse", "websocket", "websocket-cached", "auto"];
@@ -55,6 +63,7 @@ export const COMPAT_BOOLEAN_FIELDS = [
   "supportsReasoningEffort",
   "supportsStore",
   "supportsUsageInStreaming",
+  "supportsFinishReason",
   "supportsTemperature",
   "supportsStrictMode",
   "supportsStrictTools",
@@ -67,6 +76,8 @@ export const COMPAT_BOOLEAN_FIELDS = [
   "requiresReasoningContentOnAssistantMessages",
   "forceAdaptiveThinking",
   "allowEmptySignature",
+  "supportsThinkingTokenBudget",
+  "supportsMaxOutputTokens",
 ];
 
 /** Select-style compat fields. */
@@ -74,7 +85,11 @@ export const COMPAT_SELECT_FIELDS = [
   { key: "thinkingFormat", options: THINKING_FORMATS },
   { key: "maxTokensField", options: MAX_TOKENS_FIELDS },
   { key: "cacheControlFormat", options: CACHE_CONTROL_FORMATS },
+  { key: "thinkingTokenBudgetField", options: THINKING_TOKEN_BUDGET_FIELDS },
 ];
+
+/** Numeric compatibility fields. */
+export const COMPAT_NUMBER_FIELDS = ["vllmPriority"];
 
 /** Provider-level default/behavior fields grouped for the UI. */
 export const PROVIDER_SELECT_FIELDS = [

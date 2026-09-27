@@ -31,7 +31,7 @@
 
 ## Why this plugin exists
 
-DSH stores provider configuration in `llm-pi-ai.providers` inside `settings.yaml`. Editing it by hand is error-prone, and two classes of problems bite people often:
+DSH stores provider configuration in the active profile's `llm-pi-ai.providers` entry. Editing profile patches by hand is error-prone, and two classes of problems bite people often:
 
 1. **Gateway incompatibility** — not every vendor accepts the same protocol dialect. For example Alibaba Cloud (DashScope) in `compatible-mode`, Moonshot/Kimi, Zhipu/BigModel, MiniMax, Volcengine Ark, SiliconFlow, Baidu Qianfan and other gateways may reject `developer` role messages or `reasoning_effort` echoes the way the OpenAI/Anthropic dialects expect. Turning `compat.supportsDeveloperRole` on against such a gateway produces 400-style errors.
 2. **Thinking-level wiring** — the 7 levels (`off / minimal / low / medium / high / xhigh / max`) each need a wire value the upstream provider understands (e.g. `low` → `"low"` for one vendor, `"h3"` for another). Max-thinking configs and per-model `reasoningEfforts` are tedious to author by hand.
@@ -52,6 +52,7 @@ This plugin gives you a GUI for all of it, plus **one-click presets** that bake 
 
 - **Per-model editor** for every route:
   - `name`, `contextWindow`, `maxTokens` — capacity fields accept plain numbers or `K`/`M` suffixes (`262144`, `256K`, `1M`).
+  - Supports both explicit `models` lists and DSH 0.1.7 catalog-preserving `modelOverrides` entries.
   - `input` modalities — `text` / `image` checkboxes with de-duplication.
   - Thinking toggle — switch the whole model between reasoning off and the full 7-level matrix (`off/minimal/low/medium/high/xhigh/max`), each level with its own wire value. Empty non-`off` levels are prevented (the Host rejects them), and a one-click **fill all levels with the same value** button is included.
   - **Apply field to all models** of the route (name / contextWindow / maxTokens / input / reasoningEfforts).
@@ -59,7 +60,7 @@ This plugin gives you a GUI for all of it, plus **one-click presets** that bake 
 - **Per-route editor**:
   - `displayName`, `baseURL`, `api` (openai-completions / openai-responses / anthropic-messages).
   - Defaults: `defaultContextWindow`, `defaultMaxTokens`, `defaultInput`, `reasoning`, `thinkingBudgets` (minimal/low/medium/high), `cacheRetention`, `transport`.
-  - Route-level `compat` editor and an **Advanced** fold: timeouts, max image bytes / pixel budget, `headers`, plus a read-only raw JSON view.
+  - Route-level `compat` editor, including DSH 0.1.7 finish-reason, thinking-budget, `max_output_tokens`, Baseten and vLLM controls, plus an **Advanced** fold for timeouts, image limits, `headers`, and raw JSON.
 - **Controlled [models.dev](https://models.dev/) synchronization**:
   - Reads the cache or fetches `api.json` only when you click **Load catalog**; **Fetch latest catalog** explicitly refreshes it. Each local route can be mapped to a models.dev provider or excluded.
   - Shows a dry-run count before writing. Only existing models whose IDs match (case-insensitively) are updated; no route or model is added or removed.
@@ -76,17 +77,19 @@ This plugin gives you a GUI for all of it, plus **one-click presets** that bake 
   | Max thinking (7 levels) | every model declares all 7 levels, `reasoning=high`, generous `thinkingBudgets` |
   | Text only | `defaultInput=['text']` and per-model `input=['text']` |
   | Image ready | `defaultInput=['text','image']` and per-model `input=['text','image']` |
-  - Apply any preset to a **selected subset of routes**. Save your current configuration as a custom preset; apply and delete them anytime. Custom presets are stored under `model-capability.customPresets` in `settings.yaml`.
-  - **Applying a custom preset replaces the whole `llm-pi-ai` user section** via `settings.replace`, not a merge. Any route that was added to the user section *after* the preset was saved will be **deleted**. This is not an additive recipe — treat the preset as a full snapshot.
+  - Apply any preset to a **selected subset of routes**. Save your current configuration as a custom preset; apply and delete them anytime. Custom presets are stored under `model-capability.customPresets` in the active profile configuration.
+  - **Applying a custom preset replaces the whole `llm-pi-ai` user section** with one root-level ConfigForms mutation; it is not a merge. Any route that was added to the user section *after* the preset was saved will be **deleted**. This is not an additive recipe — treat the preset as a full snapshot.
   - **Header credential protection** — credential-shaped header names (`authorization`, `api-key`, etc.) are **blocked** in the headers editor, and the `headers` dict is **stripped** from every provider route when saving a custom preset (credentials travel as `apiKeyEnv` reference names, never as literal header values). Existing presets that were saved before this safeguard are detected at startup and reported in the advisory checks.
 - **Advisory checks** — the page shows diagnostics about your current setup: legacy-gateway lookalike URLs with `supportsDeveloperRole` on (hint: use Safe gateway), reasoning levels that map to no wire value, models without an explicit `contextWindow`, and routes without models.
-- **Language switch** — the page follows the DSH UI language, and a select in the page header lets you pin **English / 中文 / follow DSH**. The choice persists into `settings.yaml` (`model-capability.language`), not just to the browser session.
+- **Language switch** — the page follows the DSH UI language, and a select in the page header lets you pin **English / 中文 / follow DSH**. The choice persists in the active profile (`model-capability.language`), not just to the browser session.
 
 All writes go through the DSH settings service with revision fencing (`expectedRevision`), the same pattern the built-in Models page uses; conflicting concurrent edits are retried via the live mirror. If the page is opened from a non-loopback origin (where writes are not allowed), every control is disabled with a hint.
 
 ## Installation
 
-Requires a DSH installation with the web app (any profile that serves the browser UI), DSH ≥ 0.1.1-rc.2.
+Requires a DSH installation with the web app (any profile that serves the browser UI), DSH ≥ 0.1.7-rc.2. Plugin v1.4.0 migrated to the ConfigForms/volatile-Config settings kernel introduced by this DSH line.
+
+> **Upgrading from an older DSH:** DSH 0.1.7 imports legacy `settings.yaml` sections into the active profile once and renames the old file to `settings.yaml.imported`. The plugin's `model-capability` entry participates in that migration; do not copy the imported file back over the profile configuration.
 
 ### Install the latest version
 
@@ -222,8 +225,8 @@ The adapter follows the models.dev shape `provider.models[modelId]` and currentl
 
 One npm package with two halves, installed as a **profile bundle** by `dsh plugin add`:
 
-- `lib/index.js` — the **host half**: registers the `model-capability` settings namespace (language + custom presets) with schemastery so the Host round-trips it like any native setting.
-- `lib/client.js` — the **web client half**: a classic-script bundle registered with the web shell's module loader (`window.__ModuleLoader__.load({ id, factory })`), exactly like every shipped `@deepseek-ai` client bundle. It injects a section into the `settings.section` slot, binds both the `llm-pi-ai` and `model-capability` settings scopes, and drives all edits through `api.settings.mutate` with path ops and revision fencing.
+- `lib/index.js` — the **host half**: exports a schemastery `Config` whose `language` and `customPresets` fields are volatile, letting DSH 0.1.7 project the `model-capability` form from the live plugin entry; it disables the generic generated page because this bundle supplies one.
+- `lib/client.js` — the **web client half**: a classic-script bundle registered with the web shell's module loader. It follows the served `llm-pi-ai` namespace, injects a `settings.section`, obtains both forms through the shared `ctx.configForms` mirror, and drives all edits through queued path mutations with revision fencing.
 - `src/client/models-dev.js` — validates and normalizes the remote catalog, owns the local cache/fallback policy, and creates non-destructive route replacements for the settings layer.
 - `cordis.patch.yml` — declares the bundle row, so `dsh plugin add` wires the whole thing automatically (no manual patch editing).
 
@@ -240,7 +243,7 @@ npm test             # mapping, preservation, cache, and fallback tests
 Local testing: create a dev profile (e.g. `web-dev`), add the web app and the plugin, and restart the server on a separate port:
 
 ```bash
-dsh plugin --profile web-dev add @deepseek-ai/dsh-web-app@0.1.1-rc.2
+dsh plugin --profile web-dev add @deepseek-ai/dsh-web-app@0.1.7-rc.2
 # add the local package, then note: `file:` dependencies are snapshotted —
 # re-add after every rebuild, or replace the installed copy with a junction:
 dsh plugin --profile web-dev add file:D:/path/to/dsh-plugin-model-capability
@@ -252,7 +255,7 @@ Screenshots are captured with the included script (needs `playwright-core` and a
 ```bash
 node scripts/screenshots.mjs [baseURL] [outDir]
 node scripts/verify-dom.mjs  [baseURL]   # shadow-DOM-aware rendering checks
-node scripts/e2e-write.mjs   [baseURL]   # end-to-end write smoke test (back up settings.yaml first!)
+node scripts/e2e-write.mjs   [baseURL]   # end-to-end write smoke test (back up the profile config first!)
 ```
 
 ## FAQ / Troubleshooting
@@ -271,7 +274,7 @@ The plugin detects credential-shaped header names (e.g. `authorization`, `api-ke
 
 ### Can I add a new provider route?
 
-The plugin edits existing routes in the `llm-pi-ai` providers section. To add a brand-new provider, you still need to edit `settings.yaml` manually or use the DSH CLI. Once added, this plugin will pick it up on the next page load.
+The plugin edits existing routes in the `llm-pi-ai` providers section. Add a provider from DSH's built-in **Settings → Models** page; once its profile exists, this plugin picks it up from the shared settings mirror. Catalog routes using `modelOverrides` remain catalog-backed instead of being converted to explicit model lists.
 
 ### How do I reset a single model to defaults?
 
@@ -279,7 +282,7 @@ Click the model row to expand its editor and clear the fields you want to reset.
 
 ### Why is the "Language" setting not persisting?
 
-The language choice (`model-capability.language`) is stored in `settings.yaml` and survives restarts. If it keeps resetting, check that the settings file is writable and that no other process is overwriting it.
+The language choice (`model-capability.language`) is stored in the active profile configuration and survives restarts. If it keeps resetting, check that the profile is writable and that no other process is overwriting it.
 
 ### Why does `thinkingBudgets` only have minimal/low/medium/high when there are 6 thinking levels?
 

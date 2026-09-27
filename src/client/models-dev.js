@@ -231,14 +231,13 @@ export function buildModelsDevSync(currentProviders, catalog, selections, fields
     if (!isRecord(current) || !sourceProvider) continue;
     stats.selectedRoutes += 1;
     const next = deepClone(current);
-    const models = Array.isArray(next.models) ? next.models : [];
     let routeChanged = false;
-    for (const model of models) {
-      if (!isRecord(model) || typeof model.id !== "string") continue;
+    const syncModel = (model) => {
+      if (!isRecord(model) || typeof model.id !== "string") return;
       const source = findSourceModel(sourceProvider.models, model.id);
       if (!source) {
         stats.unmatchedModels += 1;
-        continue;
+        return;
       }
       stats.matchedModels += 1;
       const before = JSON.stringify(model);
@@ -257,6 +256,17 @@ export function buildModelsDevSync(currentProviders, catalog, selections, fields
       if (JSON.stringify(model) !== before) {
         routeChanged = true;
         stats.changedModels += 1;
+      }
+    };
+    const models = Array.isArray(next.models) ? next.models : [];
+    if (models.length > 0) {
+      for (const model of models) syncModel(model);
+    } else if (isRecord(next.modelOverrides)) {
+      for (const [id, value] of Object.entries(next.modelOverrides)) {
+        const model = { ...(isRecord(value) ? value : {}), id };
+        syncModel(model);
+        const { id: _id, ...override } = model;
+        next.modelOverrides[id] = override;
       }
     }
     if (routeChanged) {

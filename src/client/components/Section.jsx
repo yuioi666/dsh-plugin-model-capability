@@ -113,7 +113,7 @@ export function Section({ store }) {
         ))}
         {routes.length === 0 ? (
           <div style={{ fontSize: 13, opacity: 0.65 }}>
-            {t("routeNotFound")} — settings.yaml (llm-pi-ai.providers)
+            {t("routeNotFound")} — llm-pi-ai.providers
           </div>
         ) : null}
       </div>

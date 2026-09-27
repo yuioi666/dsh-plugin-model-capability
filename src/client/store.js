@@ -1,9 +1,8 @@
 // Data access layer for the Model Capability page.
 //
-// Reads come from the settings mirror through the bound scopes; writes go
-// through the scopes' own `mutate` method (SettingsScope.mutate) which queues
-// path-addressed operations with automatic serialization and revision fencing
-// — no need to go through the raw Typert Remote layer.
+// Reads come from DSH's shared ConfigForms mirror; writes go through each
+// ConfigForm's `mutate` queue with automatic serialization and revision
+// fencing — no need to go through the raw Remote layer.
 //
 // Robustness rules:
 //   - a route that only exists in the composition base (or in the pi-ai
@@ -18,6 +17,52 @@
 
 import { deepClone, stripHeadersFromProviders } from "./constants.js";
 import { BUILTIN_PRESETS } from "./presets.js";
+
+function modelViews(entry) {
+  const explicit = Array.isArray(entry?.models) ? entry.models : [];
+  if (explicit.length > 0) return explicit;
+  const overrides = entry?.modelOverrides;
+  if (!overrides || typeof overrides !== "object" || Array.isArray(overrides)) return explicit;
+  return Object.entries(overrides).map(([id, model]) => ({ ...(model ?? {}), id }));
+}
+
+/** Mutate models in either the legacy/declared list or 0.1.7's catalog
+ * modelOverrides dict, preserving which storage posture the route uses. */
+function patchRouteModels(entry, mutate) {
+  const patched = deepClone(entry);
+  const explicit = Array.isArray(patched.models) ? patched.models : [];
+  if (explicit.length > 0) {
+    for (const model of explicit) {
+      if (model && typeof model.id === "string") mutate(model);
+    }
+    patched.models = explicit;
+    return patched;
+  }
+  const overrides = patched.modelOverrides;
+  if (!overrides || typeof overrides !== "object" || Array.isArray(overrides)) return patched;
+  for (const [id, value] of Object.entries(overrides)) {
+    const model = { ...(value ?? {}), id };
+    mutate(model);
+    const { id: _id, ...next } = model;
+    overrides[id] = next;
+  }
+  patched.modelOverrides = overrides;
+  return patched;
+}
+
+function acceptedMutation(value) {
+  // DSH 0.1.7 returns boolean; the earlier scope resolved void on acceptance.
+  return value !== false;
+}
+
+function mutateForm(form, snapshot, ops) {
+  // ConfigForms owns a serialized queue and advances pending revisions between
+  // writes. Omitting a fixed fence lets rapid field commits use that queue;
+  // the pre-0.1.7 scope needed the explicit snapshot revision.
+  return typeof snapshot.status === "string"
+    ? form.mutate(ops)
+    : form.mutate(ops, snapshot.revision);
+}
 
 export class CapabilityStore {
   constructor({ llmScope, selfScope, locale, remote }) {
@@ -64,8 +109,7 @@ export class CapabilityStore {
   }
 
   modelsOf(route) {
-    const models = this.route(route)?.models;
-    return Array.isArray(models) ? models : [];
+    return modelViews(this.route(route));
   }
 
   modelIndexById(route, modelId) {
@@ -100,7 +144,10 @@ export class CapabilityStore {
   async writeOps(ops) {
     const snap = this.llmSnapshot();
     try {
-      await this.llmScope.mutate(ops, snap.revision);
+      const accepted = await mutateForm(this.llmScope, snap, ops);
+      if (!acceptedMutation(accepted)) {
+        return { ok: false, code: "settings-refused", message: "settings-refused" };
+      }
       return { ok: true, revision: snap.revision };
     } catch (err) {
       return {
@@ -123,7 +170,10 @@ export class CapabilityStore {
   async writeSelfOps(ops) {
     const snap = this.selfSnapshot();
     try {
-      await this.selfScope.mutate(ops, snap.revision);
+      const accepted = await mutateForm(this.selfScope, snap, ops);
+      if (!acceptedMutation(accepted)) {
+        return { ok: false, code: "settings-refused", message: "settings-refused" };
+      }
       return { ok: true };
     } catch (err) {
       return {
@@ -140,6 +190,10 @@ export class CapabilityStore {
   async ensureRouteMaterialized(route) {
     if (this.materialized.has(route)) return { ok: true };
     const snap = this.llmSnapshot();
+    // ConfigForms (DSH >= 0.1.7) edits nested paths against inherited layers
+    // without requiring a complete user-layer copy. Avoid freezing every
+    // schema/catalog default into the profile on a scalar edit.
+    if (typeof snap.status === "string") return { ok: true };
     const user = snap.user;
     if (
       user &&
@@ -172,50 +226,42 @@ export class CapabilityStore {
 
   async writeModelField(route, modelId, fields) {
     // fields: { [fieldName]: value } — set each; value === UNSET marks unset
-    // IMPORTANT: The DSH settings `applyPathOp` does NOT handle arrays, so
-    // ANY path going through `models` will replace the array with an object.
-    // We work around this by reading the whole route, patching the model in
-    // its models array, and writing the entire route object back.
+    // Write the complete route to preserve unknown fields and support both an
+    // explicit models array and the catalog-preserving modelOverrides dict.
     const materialized = await this.ensureRouteMaterialized(route);
     if (!materialized.ok) return materialized;
     const routeEntry = this.route(route);
     if (!routeEntry) return { ok: false, message: "route-not-found" };
-    const index = this.modelIndexById(route, modelId);
-    if (index < 0) return { ok: false, message: "model-not-found" };
-    const models = Array.isArray(routeEntry.models) ? deepClone(routeEntry.models) : [];
-    if (index >= models.length) return { ok: false, message: "model-not-found" };
-    for (const [field, value] of Object.entries(fields)) {
-      if (value === UNSET) delete models[index][field];
-      else models[index][field] = value;
-    }
-    const patched = deepClone(routeEntry);
-    patched.models = models;
+    let found = false;
+    const patched = patchRouteModels(routeEntry, (model) => {
+      if (model.id !== modelId) return;
+      found = true;
+      for (const [field, value] of Object.entries(fields)) {
+        if (value === UNSET) delete model[field];
+        else model[field] = value;
+      }
+    });
+    if (!found) return { ok: false, message: "model-not-found" };
     return this.writePath(["providers", route], patched);
   }
 
-  /** Write a single compat field on one model, preserving the whole route array. */
+  /** Write a single compat field on one model, preserving its route posture. */
   async writeModelCompatField(route, modelId, field, value, { unset = false } = {}) {
     const materialized = await this.ensureRouteMaterialized(route);
     if (!materialized.ok) return materialized;
     const routeEntry = this.route(route);
     if (!routeEntry) return { ok: false, message: "route-not-found" };
-    const index = this.modelIndexById(route, modelId);
-    if (index < 0) return { ok: false, message: "model-not-found" };
-    const models = Array.isArray(routeEntry.models) ? deepClone(routeEntry.models) : [];
-    if (index >= models.length) return { ok: false, message: "model-not-found" };
-    const compat = models[index].compat ? deepClone(models[index].compat) : {};
-    if (unset) {
-      delete compat[field];
-    } else {
-      compat[field] = value;
-    }
-    if (Object.keys(compat).length === 0) {
-      delete models[index].compat;
-    } else {
-      models[index].compat = compat;
-    }
-    const patched = deepClone(routeEntry);
-    patched.models = models;
+    let found = false;
+    const patched = patchRouteModels(routeEntry, (model) => {
+      if (model.id !== modelId) return;
+      found = true;
+      const compat = model.compat ? deepClone(model.compat) : {};
+      if (unset) delete compat[field];
+      else compat[field] = value;
+      if (Object.keys(compat).length === 0) delete model.compat;
+      else model.compat = compat;
+    });
+    if (!found) return { ok: false, message: "model-not-found" };
     return this.writePath(["providers", route], patched);
   }
 
@@ -227,16 +273,13 @@ export class CapabilityStore {
     if (!materialized.ok) return materialized;
     const routeEntry = this.route(route);
     if (!routeEntry) return { ok: false, message: "route-not-found" };
-    const models = Array.isArray(routeEntry.models) ? deepClone(routeEntry.models) : [];
-    for (const model of models) {
-      if (model.id === modelId) continue;
+    const patched = patchRouteModels(routeEntry, (model) => {
+      if (model.id === modelId) return;
       for (const field of fieldNames) {
         if (!(field in source)) continue;
         model[field] = deepClone(source[field]);
       }
-    }
-    const patched = deepClone(routeEntry);
-    patched.models = models;
+    });
     return this.writePath(["providers", route], patched);
   }
 
@@ -330,10 +373,14 @@ export class CapabilityStore {
         : { providers: parsed };
     const snap = this.llmSnapshot();
     try {
-      await this.llmScope.mutate(
+      const accepted = await mutateForm(
+        this.llmScope,
+        snap,
         [{ op: "set", path: [], value: section }],
-        snap.revision,
       );
+      if (!acceptedMutation(accepted)) {
+        return { ok: false, code: "settings-refused", message: "settings-refused" };
+      }
       this.materialized.clear();
       return { ok: true };
     } catch (err) {

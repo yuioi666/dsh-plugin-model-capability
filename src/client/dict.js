@@ -17,8 +17,8 @@ export function localize(dicts, lang, key, params) {
 export const en = {
   nav: "Model Capability",
   pageIntro:
-    "Manage the llm-pi-ai provider routes: per-model thinking levels, context / output capacity, input modalities, gateway compatibility, and route defaults. Edits are written to settings.yaml and validated by the Host.",
-  writableHost: "Edits are persisted to settings.yaml.",
+    "Manage the llm-pi-ai provider routes: per-model thinking levels, context / output capacity, input modalities, gateway compatibility, and route defaults. Edits are written to the active DSH profile and validated by the Host.",
+  writableHost: "Edits are persisted to the active DSH profile.",
   notWritable: "Settings are read-only in this browser (remote access).",
   memoryMode: "This browser cannot persist settings (loopback required).",
 
@@ -113,6 +113,7 @@ export const en = {
   supportsReasoningEffort: "Accepts a reasoning_effort parameter",
   supportsStore: "Accepts a 'store' flag",
   supportsUsageInStreaming: "Reports usage in streaming chunks",
+  supportsFinishReason: "Reports finish_reason",
   supportsTemperature: "Accepts temperature",
   supportsStrictMode: "Supports strict JSON mode",
   supportsStrictTools: "Supports strict tool schemas",
@@ -125,9 +126,13 @@ export const en = {
   requiresReasoningContentOnAssistantMessages: "Needs reasoning_content on assistant messages",
   forceAdaptiveThinking: "Force adaptive thinking",
   allowEmptySignature: "Allows empty signatures",
+  supportsThinkingTokenBudget: "Accepts a thinking-token budget",
+  supportsMaxOutputTokens: "Accepts max_output_tokens",
   thinkingFormat: "Thinking wire format (dialect)",
   maxTokensField: "Max-output wire field",
   cacheControlFormat: "Cache-control format",
+  thinkingTokenBudgetField: "Thinking-budget wire field",
+  vllmPriority: "vLLM request priority",
 
   // Presets
   presetTitle: "One-click presets",
@@ -239,8 +244,8 @@ export const en = {
 export const zh = {
   nav: "模型能力",
   pageIntro:
-    "管理 llm-pi-ai 提供商路由:每个模型的思考等级、上下文/输出容量、输入模态、网关兼容性和路由默认值。修改会写入 settings.yaml 并经 Host 校验。",
-  writableHost: "修改会持久化到 settings.yaml。",
+    "管理 llm-pi-ai 提供商路由:每个模型的思考等级、上下文/输出容量、输入模态、网关兼容性和路由默认值。修改会写入当前 DSH profile 并经 Host 校验。",
+  writableHost: "修改会持久化到当前 DSH profile。",
   notWritable: "此浏览器中设置为只读(远程访问)。",
   memoryMode: "此浏览器无法持久化设置(需要本机回环访问)。",
 
@@ -333,6 +338,7 @@ export const zh = {
   supportsReasoningEffort: "接受 reasoning_effort 参数",
   supportsStore: "接受 'store' 标记",
   supportsUsageInStreaming: "流式分块中上报用量",
+  supportsFinishReason: "上报 finish_reason",
   supportsTemperature: "接受 temperature",
   supportsStrictMode: "支持严格 JSON 模式",
   supportsStrictTools: "支持严格工具结构",
@@ -345,9 +351,13 @@ export const zh = {
   requiresReasoningContentOnAssistantMessages: "assistant 消息需要 reasoning_content",
   forceAdaptiveThinking: "强制自适应思考",
   allowEmptySignature: "允许空签名",
+  supportsThinkingTokenBudget: "接受思考 Token 预算",
+  supportsMaxOutputTokens: "接受 max_output_tokens",
   thinkingFormat: "思考线上格式(方言)",
   maxTokensField: "最大输出字段",
   cacheControlFormat: "缓存控制格式",
+  thinkingTokenBudgetField: "思考预算线上字段",
+  vllmPriority: "vLLM 请求优先级",
 
   presetTitle: "一键预设",
   presetIntro:

@@ -94,6 +94,29 @@ test("reasoning synchronization stays opt-in", () => {
   assert.equal(on.replacements.openai.models[0].reasoningEfforts, false);
 });
 
+test("sync preserves the DSH 0.1.7 modelOverrides posture", () => {
+  const current = {
+    openai: {
+      models: [],
+      modelOverrides: { "gpt-test": { contextWindow: 42, custom: "keep" } },
+    },
+  };
+  const built = buildModelsDevSync(
+    current,
+    normalizeModelsDevCatalog(raw),
+    { openai: "openai" },
+    { name: true, contextWindow: true, maxTokens: true, input: true, reasoningEfforts: false },
+  );
+  assert.deepEqual(built.replacements.openai.models, []);
+  assert.deepEqual(built.replacements.openai.modelOverrides["gpt-test"], {
+    name: "GPT Test",
+    contextWindow: 128000,
+    maxTokens: 16000,
+    input: ["text", "image"],
+    custom: "keep",
+  });
+});
+
 test("uses a fresh cache without fetching", async () => {
   const now = 10_000;
   const catalog = normalizeModelsDevCatalog(raw);

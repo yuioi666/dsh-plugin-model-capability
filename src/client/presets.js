@@ -39,32 +39,29 @@ export const OFFICIAL_LEVELS = {
   qwen: { off: null, low: "low", medium: "medium", xhigh: "xhigh" },
 };
 
-/** Model index by id inside a route's resolved models array; -1 when absent. */
-function modelIndex(routeEntry, modelId) {
-  const models = routeEntry?.models;
-  if (!Array.isArray(models)) return -1;
-  return models.findIndex((m) => m && m.id === modelId);
-}
-
 function routeBase(route) {
   return ["providers", route];
 }
 
-function modelBase(route, entry, modelId) {
-  return [...routeBase(route), "models", modelIndex(entry, modelId)];
-}
-
 function modelOps(route, entry, build) {
-  // Returns a single op that writes the entire route with the models patched.
-  // Writing individual model paths fails because DSH applyPathOp does not
-  // handle arrays — the `models` field gets replaced by an object.
-  const models = Array.isArray(entry?.models) ? deepClone(entry.models) : [];
-  for (const model of models) {
-    if (!model || typeof model.id !== "string") continue;
-    build(model);
-  }
+  // Returns a single op that writes the entire route, preserving whether DSH
+  // serves an explicit model list or 0.1.7 catalog modelOverrides.
   const patched = deepClone(entry);
-  patched.models = models;
+  const models = Array.isArray(patched?.models) ? patched.models : [];
+  if (models.length > 0) {
+    for (const model of models) {
+      if (!model || typeof model.id !== "string") continue;
+      build(model);
+    }
+    patched.models = models;
+  } else if (patched?.modelOverrides && typeof patched.modelOverrides === "object") {
+    for (const [id, value] of Object.entries(patched.modelOverrides)) {
+      const model = { ...(value ?? {}), id };
+      build(model);
+      const { id: _id, ...next } = model;
+      patched.modelOverrides[id] = next;
+    }
+  }
   return [{ op: "set", path: routeBase(route), value: patched }];
 }
 

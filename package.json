@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-model-capability",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Model Capability Manager for DSH Web: per-model thinking levels, context window, output caps, input modalities, gateway compat, route defaults, one-click presets, EN/中文 UI.",
   "license": "MIT",
   "author": "dsh-plugin-model-capability contributors",
@@ -37,7 +37,6 @@
     },
     "client": {
       "inject": [
-        "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-locale"
       ],
@@ -45,11 +44,11 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": ">=3.18.0"
+    "@deepseek-ai/schemastery": "^3.18.4"
   },
   "peerDependencies": {
-    "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-settings": "^0.1.5-rc.2"
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-settings": ">=0.1.7-rc.2 <0.2.0"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"
@@ -70,6 +69,7 @@
     "settings-ui",
     "llm",
     "llm-pi-ai",
-    "one-click-preset"
+    "one-click-preset",
+    "models-dev"
   ]
 }
